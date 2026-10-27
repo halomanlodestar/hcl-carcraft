@@ -1,0 +1,40 @@
+{% with vm=v.vehicle_model %}
+<div class="cc-card card-hover vehicle-card position-relative">
+  <a href="{% url 'inventory:detail' v.pk %}" class="stretched-link" aria-label="{{ v }}"></a>
+  <div class="car-stage" style="--car: {{ v.color_hex }}">
+    <span class="stage-brand">{% brand_logo vm.make "md" %}</span>
+    <span class="stage-tags">
+      {% if v.condition == "NEW" %}<span class="tag tag-new">NEW</span>{% else %}<span class="tag tag-used"><i class="bi bi-patch-check"></i>Certified</span>{% endif %}
+      {% if v.status == "RESERVED" %}<span class="tag"><i class="bi bi-bookmark-fill text-warning"></i>Reserved</span>{% endif %}
+      {% if v.status == "SOLD" %}<span class="tag"><i class="bi bi-bag-check-fill"></i>Sold</span>{% endif %}
+    </span>
+    {% car_art vm.body_type v.color_hex %}
+    {% if v.status != "SOLD" %}
+    <button type="submit" form="compareForm" formaction="{% url 'inventory:compare_toggle' v.pk %}" class="compare-toggle btn btn-icon btn-sm {% if v.pk in compare_ids %}btn-primary{% else %}btn-soft{% endif %}" data-bs-toggle="tooltip" title="{% if v.pk in compare_ids %}Remove from compare{% else %}Add to compare{% endif %}" aria-label="Toggle compare">
+      <i class="bi {% if v.pk in compare_ids %}bi-check-lg{% else %}bi-layout-split{% endif %}"></i>
+    </button>
+    {% endif %}
+  </div>
+  <div class="p-3 d-flex flex-column gap-2 flex-grow-1">
+    <div class="d-flex justify-content-between align-items-start gap-2">
+      <div class="min-w-0">
+        <h3 class="title text-truncate">{{ v.title }}</h3>
+        <div class="variant text-truncate">{{ v.year }} · {{ v.variant }}</div>
+      </div>
+      <span class="color-dot mt-2" style="--c: {{ v.color_hex }}" title="{{ v.color }}"></span>
+    </div>
+    <div class="spec-row">
+      <span class="spec-pill"><i class="bi {{ v.fuel|fuel_icon }}"></i>{{ v.get_fuel_display }}</span>
+      <span class="spec-pill"><i class="bi {{ v.transmission|trans_icon }}"></i>{{ v.get_transmission_display }}</span>
+      {% if v.condition == "USED" %}<span class="spec-pill"><i class="bi bi-speedometer2"></i>{{ v.mileage_km|km }}</span>{% endif %}
+    </div>
+    <div class="d-flex justify-content-between align-items-end mt-auto pt-1">
+      <div>
+        <div class="price">{{ v.price|lakh }}</div>
+        <small class="text-muted">{% if v.condition == "NEW" %}Ex-showroom{% else %}Fixed price{% endif %}</small>
+      </div>
+      <span class="text-muted small fw-semibold">Details <i class="bi bi-chevron-right"></i></span>
+    </div>
+  </div>
+</div>
+{% endwith %}

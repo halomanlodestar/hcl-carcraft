@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Book a test drive{% endblock %}
+{% block content %}
+<div class="container" style="max-width: 60rem">
+  <div class="page-head">
+    <nav aria-label="breadcrumb"><ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'inventory:list' %}">Cars</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'inventory:detail' v.pk %}">{{ v.title }}</a></li>
+      <li class="breadcrumb-item active">Test drive</li>
+    </ol></nav>
+    <h1>Book a test drive</h1>
+  </div>
+  <div class="row g-4">
+    <div class="col-md-5 order-md-last">
+      <div class="cc-card overflow-hidden">
+        <div class="car-stage" style="--car: {{ v.color_hex }}">
+          <span class="stage-brand">{% brand_logo v.vehicle_model.make "md" %}</span>
+          {% car_art v.vehicle_model.body_type v.color_hex %}
+        </div>
+        <div class="p-3">
+          <b>{{ v.title }}</b>
+          <div class="text-muted small">{{ v.year }} · {{ v.variant }}</div>
+          <div class="price mt-2">{{ v.price|lakh }}</div>
+        </div>
+        <ul class="list-unstyled small px-3 pb-3 mb-0 d-grid gap-2 text-muted">
+          <li><i class="bi bi-clock me-2"></i>Each drive takes about 30 minutes</li>
+          <li><i class="bi bi-person-vcard me-2"></i>Bring your driving licence</li>
+          <li><i class="bi bi-geo-alt me-2"></i>CarCraft showroom, Baner Road</li>
+        </ul>
+      </div>
+    </div>
+    <div class="col-md-7">
+      <div class="cc-card p-4">
+        <div class="section-title"><i class="bi bi-calendar3"></i>1. Pick a day</div>
+        <div class="d-flex gap-2 overflow-auto pb-2 mb-3">
+          {% for d in days %}
+          <a href="?date={{ d|date:'Y-m-d' }}" class="text-center rounded-3 border px-3 py-2 flex-shrink-0 {% if d == selected %}bg-primary text-white border-primary{% else %}text-reset{% endif %}" style="min-width: 4.5rem">
+            <small class="d-block fw-semibold {% if d != selected %}text-muted{% endif %}">{{ d|date:"D" }}</small>
+            <span class="fs-5 fw-bold">{{ d|date:"j" }}</span>
+            <small class="d-block {% if d != selected %}text-muted{% endif %}">{{ d|date:"M" }}</small>
+          </a>
+          {% endfor %}
+        </div>
+        <form method="post">{% csrf_token %}
+          <input type="hidden" name="date" value="{{ selected|date:'Y-m-d' }}">
+          <div class="section-title"><i class="bi bi-clock"></i>2. Choose a time</div>
+          <div class="slot-grid mb-4">
+            {% for hour, label, taken in slots %}
+            <span>
+              <input type="radio" name="slot" id="s{{ hour }}" value="{{ hour }}" {% if taken %}disabled{% endif %} required>
+              <label for="s{{ hour }}" {% if taken %}title="Already booked"{% endif %}>{{ label }}</label>
+            </span>
+            {% endfor %}
+          </div>
+          <div class="section-title"><i class="bi bi-chat-left-text"></i>3. Anything we should know? <small class="text-muted fw-normal">(optional)</small></div>
+          <textarea name="notes" class="form-control mb-4" rows="2" placeholder="e.g. I'd like to try it on the highway"></textarea>
+          <button class="btn btn-primary btn-lg w-100"><i class="bi bi-calendar-check"></i>Request test drive</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

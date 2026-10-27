@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Trade-in estimate{% endblock %}
+{% block content %}
+<div class="container" style="max-width: 62rem">
+  <div class="page-head">
+    <div class="eyebrow">Trade-in</div>
+    <h1>What's your car worth?</h1>
+    <p class="text-muted mb-0">Answer four quick questions for an instant estimate. Use it as credit towards your next car.</p>
+  </div>
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <form method="post" class="cc-card p-4" novalidate>{% csrf_token %}
+        <div class="mb-3">
+          <label class="form-label" for="{{ form.vehicle_model.id_for_label }}"><i class="bi bi-car-front me-1 text-primary"></i>{{ form.vehicle_model.label }}</label>
+          <select name="vehicle_model" id="{{ form.vehicle_model.id_for_label }}" class="form-select {% if form.vehicle_model.errors %}is-invalid{% endif %}">
+            {% for group, options in form.fields.vehicle_model.choices %}
+              {% if group %}
+              <optgroup label="{{ group }}">{% for val, label in options %}<option value="{{ val }}" {% if form.vehicle_model.value|stringformat:"s" == val|stringformat:"s" %}selected{% endif %}>{{ label }}</option>{% endfor %}</optgroup>
+              {% else %}
+              <option value="">{{ options }}</option>
+              {% endif %}
+            {% endfor %}
+          </select>
+          {% for e in form.vehicle_model.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+        </div>
+        <div class="row">
+          <div class="col-sm-5 mb-3">
+            <label class="form-label" for="id_year"><i class="bi bi-calendar3 me-1 text-primary"></i>Year</label>
+            <select name="year" id="id_year" class="form-select">
+              {% for val, label in form.fields.year.choices %}<option value="{{ val }}" {% if form.year.value|stringformat:"s" == val|stringformat:"s" %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-sm-7 mb-3">
+            <label class="form-label" for="id_km_driven"><i class="bi bi-speedometer2 me-1 text-primary"></i>{{ form.km_driven.label }}</label>
+            <div class="input-group">
+              <input type="number" name="km_driven" id="id_km_driven" class="form-control {% if form.km_driven.errors %}is-invalid{% endif %}" value="{{ form.km_driven.value|default_if_none:'' }}" placeholder="e.g. 45000" step="1000" min="0">
+              <span class="input-group-text">km</span>
+              {% for e in form.km_driven.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
+        </div>
+        <label class="form-label"><i class="bi bi-clipboard-check me-1 text-primary"></i>Overall condition</label>
+        <div class="row g-2 mb-4">
+          {% for val, label in form.fields.condition_rating.choices %}
+          <div class="col-sm-6 choice-card">
+            <input type="radio" name="condition_rating" id="cond-{{ val }}" value="{{ val }}" {% if form.condition_rating.value == val %}checked{% endif %}>
+            <label for="cond-{{ val }}">
+              <span class="ico"><i class="bi {{ condition_icons|get_item:val }}"></i></span>
+              <span class="lh-sm"><b class="d-block">{{ label }}</b><small class="text-muted">{{ condition_hints|get_item:val }}</small></span>
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+        <button class="btn btn-primary btn-lg w-100" name="estimate" value="1"><i class="bi bi-lightning-charge"></i>Get instant estimate</button>
+      </form>
+    </div>
+
+    <div class="col-lg-5">
+      {% if estimate %}
+      <div class="estimate-box">
+        <small class="opacity-75 fw-semibold text-uppercase" style="letter-spacing:.08em">Estimated value</small>
+        <div class="amount my-1">{{ estimate|inr }}</div>
+        <div class="d-flex align-items-center gap-2 opacity-75 small">{% brand_logo form.cleaned_data.vehicle_model.make "sm" %}{{ form.cleaned_data.year }} {{ form.cleaned_data.vehicle_model }} · {{ form.cleaned_data.km_driven|km }}</div>
+        <hr class="border-light opacity-25">
+        <p class="small opacity-75 mb-3"><i class="bi bi-info-circle me-1"></i>This is an estimate based on age, kilometres and condition. Our team will confirm a firm offer after a quick inspection.</p>
+        {% if user.is_authenticated and user.is_customer %}
+        <form method="post">{% csrf_token %}
+          {% for field in form %}{% if field.name != "condition_rating" %}<input type="hidden" name="{{ field.name }}" value="{{ field.value }}">{% endif %}{% endfor %}
+          <input type="hidden" name="condition_rating" value="{{ form.condition_rating.value }}">
+          <button class="btn btn-light w-100 fw-bold" name="submit_offer" value="1"><i class="bi bi-send"></i>Request a firm offer</button>
+        </form>
+        {% elif not user.is_authenticated %}
+        <a href="{% url 'accounts:login' %}?next={{ request.path }}" class="btn btn-light w-100 fw-bold"><i class="bi bi-box-arrow-in-right"></i>Sign in to get a firm offer</a>
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="cc-card p-4 h-100">
+        <div class="section-title"><i class="bi bi-lightbulb"></i>How it works</div>
+        <ol class="list-unstyled d-grid gap-3 mb-0">
+          <li class="d-flex gap-3"><span class="kpi p-0"><span class="ico ico-blue" style="width:2.4rem;height:2.4rem;font-size:1rem"><i class="bi bi-ui-checks"></i></span></span><span><b class="d-block">Tell us about your car</b><small class="text-muted">Model, year, kilometres and condition.</small></span></li>
+          <li class="d-flex gap-3"><span class="kpi p-0"><span class="ico ico-violet" style="width:2.4rem;height:2.4rem;font-size:1rem"><i class="bi bi-lightning-charge"></i></span></span><span><b class="d-block">Get an instant estimate</b><small class="text-muted">Based on real depreciation data.</small></span></li>
+          <li class="d-flex gap-3"><span class="kpi p-0"><span class="ico ico-green" style="width:2.4rem;height:2.4rem;font-size:1rem"><i class="bi bi-hand-thumbs-up"></i></span></span><span><b class="d-block">Receive a firm offer</b><small class="text-muted">Within 24 hours, applied to your next car.</small></span></li>
+        </ol>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

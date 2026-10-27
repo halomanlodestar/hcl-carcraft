@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Checkout{% endblock %}
+{% block content %}
+<div class="container" style="max-width: 62rem">
+  <div class="page-head">
+    <nav aria-label="breadcrumb"><ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'store:cart' %}">Cart</a></li>
+      <li class="breadcrumb-item active">Checkout</li>
+    </ol></nav>
+    <h1>Checkout</h1>
+  </div>
+  <form method="post" class="row g-4">{% csrf_token %}
+    <div class="col-lg-7">
+      <div class="cc-card p-4 mb-4">
+        <div class="section-title"><i class="bi bi-geo-alt"></i>Delivery address</div>
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <span class="avatar">{{ user.initials }}</span>
+          <div class="lh-sm"><b>{{ user.display_name }}</b><div class="small text-muted">{{ user.phone }} · {{ user.email }}</div></div>
+        </div>
+        <textarea name="address" class="form-control" rows="3" required placeholder="House no., street, area, city, PIN">{{ default_address }}</textarea>
+      </div>
+      <div class="cc-card p-4">
+        <div class="section-title"><i class="bi bi-truck"></i>Delivery</div>
+        <div class="d-flex align-items-center gap-3">
+          <i class="bi bi-lightning-charge-fill fs-4 text-warning"></i>
+          <div><b>Standard delivery, free</b><div class="small text-muted">Arrives in 2–4 business days</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="cc-card p-4">
+        <div class="section-title"><i class="bi bi-bag"></i>{{ items|length }} item{{ items|length|pluralize }}</div>
+        {% for item in items %}
+        <div class="d-flex justify-content-between small py-1"><span class="text-truncate me-2">{{ item.quantity }} × {{ item.part.name }}</span><span class="text-nowrap">{{ item.line_total|inr }}</span></div>
+        {% endfor %}
+        <hr>
+        <div class="summary-row"><span class="text-muted">Subtotal</span><span>{{ totals.subtotal|inr:2 }}</span></div>
+        {% if coupon %}<div class="summary-row text-success"><span><i class="bi bi-ticket-perforated"></i> {{ coupon.code }}</span><span>−{{ totals.discount|inr:2 }}</span></div>{% endif %}
+        <div class="summary-row"><span class="text-muted">GST (18%)</span><span>{{ totals.tax|inr:2 }}</span></div>
+        <div class="summary-row total"><span>Total</span><span>{{ totals.total|inr:2 }}</span></div>
+        <button class="btn btn-primary btn-lg w-100 mt-3"><i class="bi bi-lock-fill"></i>Continue to payment</button>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}

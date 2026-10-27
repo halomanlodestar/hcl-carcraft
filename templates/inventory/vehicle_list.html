@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}Cars for sale{% endblock %}
+{% block content %}
+<form method="get" data-autosubmit id="filterForm">
+<div class="container">
+  <div class="page-head d-flex flex-wrap gap-3 justify-content-between align-items-end">
+    <div>
+      <div class="eyebrow">Showroom</div>
+      <h1>Cars for sale</h1>
+      <p class="text-muted mb-0"><b class="text-body">{{ page.paginator.count }}</b> car{{ page.paginator.count|pluralize }} match your search</p>
+    </div>
+    <div class="input-icon search-xl flex-grow-1" style="max-width: 30rem">
+      <i class="bi bi-search"></i>
+      <input class="form-control" type="search" name="q" value="{{ sel.q }}" placeholder="Search “Creta”, “Nexon EV”, “white”…" data-no-autosubmit aria-label="Search cars">
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <aside class="col-lg-3">
+      <div class="offcanvas-lg offcanvas-start" tabindex="-1" id="filters" aria-labelledby="filtersLabel">
+        <div class="offcanvas-header border-bottom">
+          <h5 class="offcanvas-title" id="filtersLabel"><i class="bi bi-sliders me-2"></i>Filters</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#filters" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body d-block">
+          <div class="cc-card px-3 filter-panel w-100">
+            <div class="filter-group">
+              <div class="filter-label"><i class="bi bi-award"></i>Brand</div>
+              <div class="d-flex flex-wrap gap-2 brand-toggle">
+                {% for m in makes %}
+                <span>
+                  <input type="checkbox" name="make" value="{{ m.slug }}" id="mk-{{ m.slug }}" {% if m.slug in sel.make %}checked{% endif %}>
+                  <label for="mk-{{ m.slug }}" title="{{ m.name }}" data-bs-toggle="tooltip">{% brand_logo m "md" %}</label>
+                </span>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="filter-group">
+              <div class="filter-label"><i class="bi bi-car-front"></i>Body type</div>
+              <div class="row g-2 row-cols-3">
+                {% for code, label in body_types %}
+                <div class="col">
+                  <label class="chip-check body-chip w-100">
+                    <input type="checkbox" name="body" value="{{ code }}" {% if code in sel.body %}checked{% endif %}>
+                    <span><svg viewBox="0 0 320 140" aria-hidden="true"><use href="#car-{{ code }}"/></svg>{{ label }}</span>
+                  </label>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="filter-group">
+              <div class="filter-label"><i class="bi bi-currency-rupee"></i>Budget</div>
+              <div class="d-flex gap-2 align-items-center">
+                <select class="form-select form-select-sm" name="min_price" aria-label="Minimum price">
+                  <option value="">Min</option>
+                  {% for p in price_steps %}<option value="{{ p }}" {% if sel.min_price == p|stringformat:"d" %}selected{% endif %}>{{ p|lakh }}</option>{% endfor %}
+                </select>
+                <span class="text-muted">–</span>
+                <select class="form-select form-select-sm" name="max_price" aria-label="Maximum price">
+                  <option value="">Max</option>
+                  {% for p in price_steps %}<option value="{{ p }}" {% if sel.max_price == p|stringformat:"d" %}selected{% endif %}>{{ p|lakh }}</option>{% endfor %}
+                </select>
+              </div>
+            </div>
+
+            <div class="filter-group">
+              <div class="filter-label"><i class="bi bi-fuel-pump"></i>Fuel</div>
+              <div class="d-flex flex-wrap gap-2">
+                {% for code, label in fuels %}
+                <label class="chip-check"><input type="checkbox" name="fuel" value="{{ code }}" {% if code in sel.fuel %}checked{% endif %}><span><i class="bi {{ code|fuel_icon }}"></i>{{ label }}</span></label>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="filter-group">
+              <div class="filter-label"><i class="bi bi-gear-wide-connected"></i>Transmission</div>
+              <div class="d-flex flex-wrap gap-2">
+                <label class="chip-check"><input type="radio" name="transmission" value="" {% if not sel.transmission %}checked{% endif %}><span>Any</span></label>
+                {% for code, label in transmissions %}
+                <label class="chip-check"><input type="radio" name="transmission" value="{{ code }}" {% if code == sel.transmission %}checked{% endif %}><span><i class="bi {{ code|trans_icon }}"></i>{{ label }}</span></label>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="filter-group">
+              <div class="filter-label"><i class="bi bi-patch-check"></i>Condition</div>
+              <div class="d-flex flex-wrap gap-2">
+                <label class="chip-check"><input type="radio" name="condition" value="" {% if not sel.condition %}checked{% endif %}><span>All</span></label>
+                <label class="chip-check"><input type="radio" name="condition" value="NEW" {% if sel.condition == "NEW" %}checked{% endif %}><span><i class="bi bi-stars"></i>New</span></label>
+                <label class="chip-check"><input type="radio" name="condition" value="USED" {% if sel.condition == "USED" %}checked{% endif %}><span><i class="bi bi-patch-check"></i>Certified pre-owned</span></label>
+              </div>
+            </div>
+            {% if active_filters %}
+            <div class="filter-group"><a href="{% url 'inventory:list' %}" class="btn btn-soft btn-sm w-100"><i class="bi bi-arrow-counterclockwise"></i>Reset all filters</a></div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="col-lg-9">
+      <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+        <button class="btn btn-soft btn-sm d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#filters">
+          <i class="bi bi-sliders"></i>Filters{% if active_filters %} <span class="badge text-bg-danger rounded-pill">{{ active_filters|length }}</span>{% endif %}
+        </button>
+        {% for label, url in active_filters %}
+        <span class="active-filter">{{ label }}<a href="{{ url }}" aria-label="Remove filter {{ label }}"><i class="bi bi-x"></i></a></span>
+        {% endfor %}
+        <div class="ms-auto d-flex align-items-center gap-2">
+          <label for="sort" class="text-muted small text-nowrap d-none d-sm-block"><i class="bi bi-sort-down"></i> Sort</label>
+          <select class="form-select form-select-sm" id="sort" name="sort" style="width: auto">
+            {% for k, label in sorts %}<option value="{{ k }}" {% if k == sel.sort %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+
+      {% if page.object_list %}
+      <div class="row g-4 row-cols-1 row-cols-sm-2 row-cols-xl-3">
+        {% for v in page.object_list %}<div class="col">{% include "partials/vehicle_card.html" %}</div>{% endfor %}
+      </div>
+      {% include "partials/pagination.html" %}
+      {% else %}
+      <div class="cc-card">
+        {% include "partials/empty_state.html" with icon="bi-car-front" title="No cars match these filters" text="Try widening your budget or removing a filter or two." cta_url="/inventory/" cta_label="Clear all filters" %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+</form>
+{% endblock %}

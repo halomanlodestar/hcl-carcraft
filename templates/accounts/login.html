@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Sign in{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-side hero rounded-0 p-5">
+    <div class="px-xl-5">
+      <div class="eyebrow mb-2" style="color:#ff8a8f">CarCraft dealership suite</div>
+      <h1 class="mb-3">Everything your car needs, in one place.</h1>
+      <p class="lead">Buy, sell, service and shop parts, with live updates at every step.</p>
+      <svg class="hero-car mt-4" viewBox="0 0 320 140" aria-hidden="true" style="color:#f8fafc"><use href="#car-SEDAN"/></svg>
+    </div>
+  </div>
+  <div class="d-flex align-items-center justify-content-center p-4">
+    <div class="w-100" style="max-width: 26rem">
+      <h2 class="h3 mb-1">Welcome back</h2>
+      <p class="text-muted mb-4">Sign in to your account to continue.</p>
+      {% if form.errors %}
+      <div class="alert alert-danger d-flex gap-2 align-items-center py-2"><i class="bi bi-exclamation-circle"></i>That username and password didn't match.</div>
+      {% endif %}
+      <form method="post" id="loginForm">{% csrf_token %}
+        <input type="hidden" name="next" value="{{ next }}">
+        <div class="mb-3">
+          <label class="form-label" for="id_username">Username</label>
+          <div class="input-icon"><i class="bi bi-person"></i><input class="form-control" id="id_username" name="username" autocomplete="username" required autofocus></div>
+        </div>
+        <div class="mb-4">
+          <label class="form-label" for="id_password">Password</label>
+          <div class="input-icon"><i class="bi bi-lock"></i><input class="form-control" type="password" id="id_password" name="password" autocomplete="current-password" required></div>
+        </div>
+        <button class="btn btn-primary w-100 py-2">Sign in <i class="bi bi-chevron-right"></i></button>
+      </form>
+      <p class="text-center text-muted mt-3 mb-4">New here? <a href="{% url 'accounts:register' %}" class="fw-semibold">Create an account</a></p>
+
+      <div class="d-flex align-items-center gap-2 mb-3"><hr class="flex-grow-1"><small class="text-muted fw-semibold">OR TRY A DEMO ACCOUNT</small><hr class="flex-grow-1"></div>
+      <div class="d-grid gap-2">
+        {% for username, role, desc, icon, tone in demo_accounts %}
+        <button type="button" class="demo-login" data-user="{{ username }}">
+          <span class="ico {{ tone }}"><i class="bi {{ icon }}"></i></span>
+          <span class="flex-grow-1 lh-sm"><span class="fw-bold d-block">{{ role }}</span><small class="text-muted">{{ desc }}</small></span>
+          <i class="bi bi-chevron-right text-muted"></i>
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  document.querySelectorAll(".demo-login").forEach(function (b) {
+    b.addEventListener("click", function () {
+      document.getElementById("id_username").value = b.dataset.user;
+      document.getElementById("id_password").value = "demo1234";
+      document.getElementById("loginForm").requestSubmit();
+    });
+  });
+</script>
+{% endblock %}

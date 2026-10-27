@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Compare cars{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="page-head d-flex flex-wrap justify-content-between align-items-end gap-3">
+    <div>
+      <div class="eyebrow">Side by side</div>
+      <h1>Compare cars</h1>
+      <p class="text-muted mb-0">Compare up to 4 cars. <i class="bi bi-trophy-fill text-success"></i> marks the best value in each row.</p>
+    </div>
+    {% if vehicles %}
+    <form method="post" action="{% url 'inventory:compare_clear' %}">{% csrf_token %}
+      <button class="btn btn-soft btn-sm"><i class="bi bi-trash3"></i>Clear all</button>
+    </form>
+    {% endif %}
+  </div>
+
+  {% if vehicles %}
+  <div class="cc-card overflow-hidden">
+    <div class="table-responsive">
+      <table class="table compare-table align-middle mb-0">
+        <thead>
+          <tr>
+            <th class="bg-transparent"></th>
+            {% for v in vehicles %}
+            <td style="min-width: 13rem" class="pt-3">
+              <div class="position-relative">
+                <button type="submit" form="compareForm" formaction="{% url 'inventory:compare_toggle' v.pk %}" class="btn btn-icon btn-sm btn-soft position-absolute top-0 end-0" style="z-index:3" aria-label="Remove" data-bs-toggle="tooltip" title="Remove"><i class="bi bi-x-lg"></i></button>
+                <a href="{% url 'inventory:detail' v.pk %}" class="text-reset">
+                  <div class="car-stage rounded-3 mb-2" style="--car: {{ v.color_hex }}">{% car_art v.vehicle_model.body_type v.color_hex %}</div>
+                  <div class="d-flex align-items-center gap-2">{% brand_logo v.vehicle_model.make "sm" %}<b>{{ v.vehicle_model.name }}</b></div>
+                  <small class="text-muted">{{ v.variant }}</small>
+                </a>
+              </div>
+            </td>
+            {% endfor %}
+            {% for _ in slots_left %}
+            <td style="min-width: 13rem" class="pt-3">
+              <a href="{% url 'inventory:list' %}" class="d-grid place-items-center text-center rounded-3 border border-2 text-muted p-4" style="border-style: dashed !important; aspect-ratio: 16/11">
+                <span><i class="bi bi-plus-circle fs-2 d-block mb-1"></i><small class="fw-semibold">Add a car</small></span>
+              </a>
+            </td>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for label, icon, cells, best in rows %}
+          <tr>
+            <th><i class="bi {{ icon }} me-2"></i>{{ label }}</th>
+            {% for kind, value in cells %}
+            <td class="{% if forloop.counter0 in best %}best{% endif %}">
+              {% if kind == "price" %}<span class="fw-bold">{{ value|inr }}</span>
+              {% elif kind == "km" %}{{ value|km }}
+              {% elif kind == "spec" %}{% if value.0 is not None %}{{ value.0 }} {{ value.1 }}{% else %}<span class="text-muted">—</span>{% endif %}
+              {% else %}{{ value }}{% endif %}
+            </td>
+            {% endfor %}
+            {% for _ in slots_left %}<td></td>{% endfor %}
+          </tr>
+          {% endfor %}
+          <tr><th colspan="{{ vehicles|length|add:5 }}" class="bg-body-tertiary text-uppercase small fw-bold" style="letter-spacing:.07em"><i class="bi bi-stars me-2"></i>Features</th></tr>
+          {% for name, has in feature_rows %}
+          <tr>
+            <th>{{ name }}</th>
+            {% for h in has %}<td>{% if h %}<i class="bi bi-check-circle-fill text-success fs-5" aria-label="Yes"></i>{% else %}<i class="bi bi-dash-circle text-muted" aria-label="No"></i>{% endif %}</td>{% endfor %}
+            {% for _ in slots_left %}<td></td>{% endfor %}
+          </tr>
+          {% endfor %}
+          <tr>
+            <th></th>
+            {% for v in vehicles %}<td><a href="{% url 'inventory:detail' v.pk %}" class="btn btn-primary btn-sm w-100">View car <i class="bi bi-chevron-right"></i></a></td>{% endfor %}
+            {% for _ in slots_left %}<td></td>{% endfor %}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="cc-card">
+    {% include "partials/empty_state.html" with icon="bi-layout-split" title="Nothing to compare yet" text="Tap the compare button on any car to add it here. You can compare up to 4 at once." cta_url="/inventory/" cta_label="Browse cars" %}
+  </div>
+  {% endif %}
+
+  {% if suggestions %}
+  <section class="mt-5">
+    <h2 class="h5 mb-3">{% if vehicles %}Add another car{% else %}Popular picks to compare{% endif %}</h2>
+    <div class="row g-4 row-cols-1 row-cols-sm-2 row-cols-lg-4">
+      {% for v in suggestions %}<div class="col">{% include "partials/vehicle_card.html" %}</div>{% endfor %}
+    </div>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

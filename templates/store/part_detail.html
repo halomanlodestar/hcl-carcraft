@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}{{ part.name }}{% endblock %}
+{% block content %}
+{% with tint=tints|get_item:part.category.slug %}
+<div class="container">
+  <div class="pt-4">
+    <nav aria-label="breadcrumb"><ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'store:list' %}">Parts</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'store:list' %}?category={{ part.category.slug }}">{{ part.category.name }}</a></li>
+      <li class="breadcrumb-item active">{{ part.name }}</li>
+    </ol></nav>
+  </div>
+  <div class="row g-4">
+    <div class="col-md-5">
+      <div class="cc-card overflow-hidden">
+        <div class="part-visual" style="--tint: {{ tint }}; font-size: 7rem; aspect-ratio: 1"><i class="bi {{ part.category.icon }}"></i><span class="part-brand fs-6">{{ part.brand }}</span></div>
+      </div>
+    </div>
+    <div class="col-md-7">
+      <div class="small text-muted fw-semibold">{{ part.brand }} · SKU <span class="font-monospace">{{ part.sku }}</span></div>
+      <h1 class="h2 mt-1">{{ part.name }}</h1>
+      <div class="price my-3" style="font-size: 2rem">{{ part.price|inr }} <small class="text-muted fs-6 fw-semibold">incl. of all taxes on checkout</small></div>
+
+      <div class="d-flex flex-wrap gap-2 mb-3">
+        {% if part.in_stock %}
+          {% if part.is_low_stock %}<span class="badge-status badge-status-warning"><i class="bi bi-hourglass-split"></i>Hurry, only {{ part.stock_qty }} left</span>
+          {% else %}<span class="badge-status badge-status-success"><i class="bi bi-check-circle"></i>In stock</span>{% endif %}
+        {% else %}<span class="badge-status badge-status-danger"><i class="bi bi-x-circle"></i>Out of stock</span>{% endif %}
+        {% if part.is_universal %}<span class="badge-status badge-status-secondary"><i class="bi bi-globe2"></i>Universal fit</span>{% endif %}
+      </div>
+
+      {% if garage %}
+        {% if fits_mine %}
+        <div class="alert alert-success d-flex align-items-center gap-2 py-2"><i class="bi bi-check-circle-fill"></i><span>Fits your {% for m in fits_mine %}<b>{{ m.name }}</b>{% if not forloop.last %} and {% endif %}{% endfor %}</span></div>
+        {% else %}
+        <div class="alert alert-warning d-flex align-items-center gap-2 py-2"><i class="bi bi-exclamation-triangle-fill"></i><span>This part doesn't fit any car in your garage.</span></div>
+        {% endif %}
+      {% endif %}
+
+      <p class="text-muted">{{ part.description }}</p>
+
+      {% if user.is_customer %}
+        {% if part.in_stock %}
+        <form method="post" action="{% url 'store:cart_add' part.pk %}" class="d-flex gap-2 mb-4">{% csrf_token %}
+          <select name="qty" class="form-select" style="width: 5.5rem" aria-label="Quantity">
+            {% for n in "12345"|make_list %}<option value="{{ n }}">{{ n }}</option>{% endfor %}
+          </select>
+          <button class="btn btn-primary btn-lg flex-grow-1"><i class="bi bi-bag-plus"></i>Add to cart</button>
+        </form>
+        {% endif %}
+      {% elif not user.is_authenticated %}
+        <a href="{% url 'accounts:login' %}?next={{ request.path }}" class="btn btn-primary btn-lg mb-4"><i class="bi bi-box-arrow-in-right"></i>Sign in to buy</a>
+      {% elif user.is_admin_role %}
+        <div class="cc-card p-3 mb-4 d-flex align-items-center gap-3">
+          <i class="bi bi-box-seam fs-4 text-muted"></i>
+          <div class="flex-grow-1"><b>{{ part.stock_qty }}</b> in stock · reorder at {{ part.reorder_level }}</div>
+          <a href="{% url 'admin:store_part_change' part.pk %}" class="btn btn-soft btn-sm"><i class="bi bi-pencil"></i>Edit</a>
+        </div>
+      {% endif %}
+
+      <div class="row g-2 text-center small mb-4">
+        <div class="col-4"><div class="p-2 rounded-3" style="background:var(--cc-surface-2)"><i class="bi bi-truck fs-5 d-block text-primary"></i>Free delivery over ₹999</div></div>
+        <div class="col-4"><div class="p-2 rounded-3" style="background:var(--cc-surface-2)"><i class="bi bi-patch-check fs-5 d-block text-primary"></i>100% genuine</div></div>
+        <div class="col-4"><div class="p-2 rounded-3" style="background:var(--cc-surface-2)"><i class="bi bi-arrow-repeat fs-5 d-block text-primary"></i>7-day returns</div></div>
+      </div>
+
+      {% if not part.is_universal %}
+      <div class="cc-card p-3">
+        <div class="section-title mb-2"><i class="bi bi-car-front"></i>Compatible vehicles</div>
+        <div class="d-grid gap-2">
+          {% for make, models in models_by_make.items %}
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span style="width: 2rem">{% brand_logo make "md" %}</span>
+            {% for m in models %}<a href="{% url 'store:list' %}?model={{ m.pk }}" class="spec-pill text-reset">{{ m.name }}</a>{% endfor %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if related %}
+  <section class="mt-5">
+    <h2 class="h5 mb-3">More in {{ part.category.name }}</h2>
+    <div class="row g-3 row-cols-2 row-cols-md-4">
+      {% for p in related %}<div class="col">{% include "partials/part_card.html" %}</div>{% endfor %}
+    </div>
+  </section>
+  {% endif %}
+</div>
+{% endwith %}
+{% endblock %}

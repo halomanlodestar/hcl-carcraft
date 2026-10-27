@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Sale #{{ sale.pk }}{% endblock %}
+{% block content %}
+{% with v=sale.vehicle %}
+<div class="container" style="max-width: 52rem">
+  <div class="page-head d-flex flex-wrap justify-content-between align-items-end gap-2">
+    <div><div class="eyebrow">Sale #{{ sale.pk }}</div><h1>{{ v.year }} {{ v.title }}</h1><div class="text-muted">Sold {{ sale.sold_at|date:"j M Y" }} by {{ sale.salesperson.display_name }}</div></div>
+    <a href="{% url 'inventory:sale_invoice' sale.pk %}" target="_blank" class="btn btn-primary"><i class="bi bi-file-earmark-pdf"></i>Invoice PDF</a>
+  </div>
+  <div class="cc-card overflow-hidden">
+    <div class="car-stage car-stage-lg rounded-0" style="--car: {{ v.color_hex }}"><span class="stage-brand">{% brand_logo v.vehicle_model.make "lg" %}</span>{% car_art v.vehicle_model.body_type v.color_hex %}</div>
+    <div class="row g-0 border-top">
+      <div class="col-md-6 p-4 border-end">
+        <div class="section-title"><i class="bi bi-person"></i>Buyer</div>
+        <b>{{ sale.customer.display_name }}</b>
+        <div class="small text-muted">{{ sale.customer.email }}<br>{{ sale.customer.phone }}<br>{{ sale.customer.address|linebreaksbr }}</div>
+      </div>
+      <div class="col-md-6 p-4">
+        <div class="section-title"><i class="bi bi-receipt"></i>Summary</div>
+        <div class="summary-row"><span class="text-muted">Sale price</span><span>{{ sale.sale_price|inr }}</span></div>
+        {% if sale.trade_in %}<div class="summary-row"><span class="text-muted">Trade-in ({{ sale.trade_in.vehicle_model }})</span><span class="text-success">−{{ sale.trade_in_credit|inr }}</span></div>{% endif %}
+        <div class="summary-row total"><span>Amount payable</span><span>{{ sale.amount_payable|inr }}</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endwith %}
+{% endblock %}

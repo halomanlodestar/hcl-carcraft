@@ -1,0 +1,186 @@
+{% load static %}<!doctype html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}CarCraft{% endblock %} · CarCraft</title>
+  <script>
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem("cc-theme"); } catch (e) {}
+      if (!t) t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      document.documentElement.setAttribute("data-bs-theme", t);
+    })();
+  </script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23e0313b'/><path d='M7 19l2-5c.4-1 1.3-1.6 2.3-1.6h9.4c1 0 1.9.6 2.3 1.6l2 5v4h-3v-1.5H10V23H7z' fill='white'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="{% static 'css/app.css' %}" rel="stylesheet">
+  {% block head %}{% endblock %}
+</head>
+<body>
+{% include "partials/car_sprite.html" %}
+<form id="compareForm" method="post" class="d-none">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"></form>
+{% with app=request.resolver_match.app_name %}
+<nav class="navbar navbar-expand-lg cc-nav sticky-top py-2">
+  <div class="container">
+    <a class="navbar-brand cc-brand" href="{% url 'core:home' %}">
+      <span class="cc-brand-mark"><i class="bi bi-car-front-fill"></i></span>
+      <span>Car<b>Craft</b></span>
+    </a>
+
+    <div class="d-flex align-items-center gap-1 order-lg-last ms-auto ms-lg-0">
+      <button class="nav-icon-btn" id="themeToggle" type="button" aria-label="Toggle dark mode" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Toggle theme">
+        <i class="bi bi-moon-stars"></i>
+      </button>
+      {% if compare_count %}
+      <a class="nav-icon-btn d-none d-sm-grid" href="{% url 'inventory:compare' %}" aria-label="Compare cars" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Compare ({{ compare_count }})">
+        <i class="bi bi-layout-split"></i><span class="dot">{{ compare_count }}</span>
+      </a>
+      {% endif %}
+      {% if user.is_authenticated %}
+        {% if user.is_customer %}
+        <a class="nav-icon-btn" href="{% url 'store:cart' %}" aria-label="Cart" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Cart">
+          <i class="bi bi-bag"></i>{% if cart_count %}<span class="dot">{{ cart_count }}</span>{% endif %}
+        </a>
+        {% endif %}
+        <div class="dropdown">
+          <button class="nav-icon-btn" data-bs-toggle="dropdown" aria-label="Notifications" aria-expanded="false">
+            <i class="bi bi-bell"></i>{% if unread_notifications %}<span class="dot">{{ unread_notifications }}</span>{% endif %}
+          </button>
+          <div class="dropdown-menu dropdown-menu-end notif-menu">
+            <div class="d-flex justify-content-between align-items-center px-2 py-1 mb-1">
+              <strong>Notifications</strong>
+              {% if unread_notifications %}
+              <form method="post" action="{% url 'core:notifications_read' %}">{% csrf_token %}
+                <button class="btn btn-link btn-sm p-0 text-decoration-none"><i class="bi bi-check2-all"></i> Mark all read</button>
+              </form>
+              {% endif %}
+            </div>
+            {% for n in recent_notifications %}
+              <a class="dropdown-item notif-item {% if not n.is_read %}unread{% endif %}" href="{% url 'core:notification_open' n.pk %}">
+                <span class="notif-icon {{ n.kind }}"><i class="bi {{ n.display_icon }}"></i></span>
+                <span><span class="d-block">{{ n.message }}</span><small class="text-muted">{{ n.created_at|timesince }} ago</small></span>
+              </a>
+            {% empty %}
+              <div class="text-center text-muted py-4"><i class="bi bi-bell-slash fs-3 d-block mb-2"></i>You're all caught up</div>
+            {% endfor %}
+            <div class="border-top mt-1 pt-1"><a class="dropdown-item justify-content-center text-primary fw-semibold" href="{% url 'core:notifications' %}">View all <i class="bi bi-chevron-right text-primary"></i></a></div>
+          </div>
+        </div>
+        <div class="dropdown ms-1">
+          <button class="btn p-0 border-0" data-bs-toggle="dropdown" aria-label="Account menu" aria-expanded="false">
+            <span class="avatar">{{ user.initials }}</span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end" style="min-width: 15rem">
+            <div class="d-flex align-items-center gap-2 px-2 py-2">
+              <span class="avatar">{{ user.initials }}</span>
+              <div class="lh-sm"><div class="fw-bold">{{ user.display_name }}</div><span class="role-chip">{{ user.get_role_display }}</span></div>
+            </div>
+            <hr class="dropdown-divider">
+            <a class="dropdown-item" href="{% url 'dashboard:home' %}"><i class="bi bi-grid-1x2"></i>Dashboard</a>
+            {% if user.is_customer %}
+            <a class="dropdown-item" href="{% url 'service:garage' %}"><i class="bi bi-house-door"></i>My garage</a>
+            <a class="dropdown-item" href="{% url 'store:orders' %}"><i class="bi bi-receipt"></i>My orders</a>
+            <a class="dropdown-item" href="{% url 'inventory:my_test_drives' %}"><i class="bi bi-calendar-event"></i>Test drives</a>
+            <a class="dropdown-item" href="{% url 'inventory:my_trade_ins' %}"><i class="bi bi-arrow-left-right"></i>Trade-ins</a>
+            {% endif %}
+            {% if user.is_admin_role %}
+            <a class="dropdown-item" href="{% url 'admin:index' %}"><i class="bi bi-database-gear"></i>Django admin</a>
+            {% endif %}
+            <a class="dropdown-item" href="{% url 'accounts:profile' %}"><i class="bi bi-person-gear"></i>Profile</a>
+            <hr class="dropdown-divider">
+            <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}
+              <button class="dropdown-item text-danger"><i class="bi bi-box-arrow-right text-danger"></i>Sign out</button>
+            </form>
+          </div>
+        </div>
+      {% else %}
+        <a class="btn btn-soft btn-sm d-none d-sm-inline-flex" href="{% url 'accounts:login' %}">Sign in</a>
+        <a class="btn btn-primary btn-sm" href="{% url 'accounts:register' %}">Get started</a>
+      {% endif %}
+      <button class="navbar-toggler border-0 ms-1" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-label="Menu">
+        <i class="bi bi-list fs-3"></i>
+      </button>
+    </div>
+
+    <div class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav mx-auto gap-lg-1 py-2 py-lg-0">
+        <li class="nav-item"><a class="nav-link {% if app == 'inventory' %}active{% endif %}" href="{% url 'inventory:list' %}"><i class="bi bi-car-front"></i>Cars</a></li>
+        <li class="nav-item"><a class="nav-link {% if app == 'store' %}active{% endif %}" href="{% url 'store:list' %}"><i class="bi bi-gear-wide-connected"></i>Parts</a></li>
+        <li class="nav-item">
+          {% if user.is_mechanic %}
+            <a class="nav-link {% if app == 'service' %}active{% endif %}" href="{% url 'service:queue' %}"><i class="bi bi-wrench-adjustable"></i>My jobs</a>
+          {% elif user.is_admin_role %}
+            <a class="nav-link {% if app == 'service' %}active{% endif %}" href="{% url 'service:manage' %}"><i class="bi bi-wrench-adjustable"></i>Service</a>
+          {% else %}
+            <a class="nav-link {% if app == 'service' %}active{% endif %}" href="{% url 'service:garage' %}"><i class="bi bi-wrench-adjustable"></i>Service</a>
+          {% endif %}
+        </li>
+        {% if user.is_authenticated and not user.is_customer %}
+        <li class="nav-item"><a class="nav-link {% if app == 'dashboard' and request.resolver_match.url_name != 'analytics' %}active{% endif %}" href="{% url 'dashboard:home' %}"><i class="bi bi-grid-1x2"></i>Dashboard</a></li>
+        {% endif %}
+        {% if user.is_admin_role or user.is_sales %}
+        <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'analytics' %}active{% endif %}" href="{% url 'dashboard:analytics' %}"><i class="bi bi-bar-chart-line"></i>Analytics</a></li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</nav>
+{% endwith %}
+
+{% if messages %}
+<div class="toast-stack">
+  {% for m in messages %}
+  <div class="cc-toast {{ m.tags }}" role="status">
+    <i class="bi {% if m.tags == 'success' %}bi-check-circle-fill{% elif m.tags == 'danger' %}bi-x-octagon-fill{% elif m.tags == 'warning' %}bi-exclamation-triangle-fill{% else %}bi-info-circle-fill{% endif %}"></i>
+    <span class="flex-grow-1">{{ m }}</span>
+    <button type="button" class="btn-close btn-sm" aria-label="Dismiss" onclick="this.parentElement.remove()"></button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<main>
+  {% block content %}{% endblock %}
+</main>
+
+{% if compare_count and request.resolver_match.url_name != 'compare' %}
+<div class="compare-tray">
+  <span><i class="bi bi-layout-split me-1"></i>{{ compare_count }} car{{ compare_count|pluralize }} selected</span>
+  <a href="{% url 'inventory:compare' %}" class="btn btn-primary btn-sm">Compare <i class="bi bi-chevron-right"></i></a>
+</div>
+{% endif %}
+
+<footer class="cc-footer mt-5">
+  <div class="container py-4">
+    <div class="row g-4 align-items-center">
+      <div class="col-md-5">
+        <a class="cc-brand mb-2" href="{% url 'core:home' %}"><span class="cc-brand-mark"><i class="bi bi-car-front-fill"></i></span><span>Car<b>Craft</b></span></a>
+        <p class="mb-0 mt-2">New and pre-owned cars, genuine parts and expert service, all under one roof.</p>
+      </div>
+      <div class="col-md-4">
+        <div class="d-flex flex-column gap-1">
+          <span><i class="bi bi-geo-alt me-2"></i>Baner Road, Pune 411045</span>
+          <span><i class="bi bi-telephone me-2"></i>+91 20 4000 1234</span>
+          <span><i class="bi bi-clock me-2"></i>Mon–Sat, 9:30 AM – 7:30 PM</span>
+        </div>
+      </div>
+      <div class="col-md-3 text-md-end social">
+        <a href="#" aria-label="Instagram"><i class="bi bi-instagram"></i></a>
+        <a href="#" aria-label="YouTube"><i class="bi bi-youtube"></i></a>
+        <a href="#" aria-label="X"><i class="bi bi-twitter-x"></i></a>
+        <a href="#" aria-label="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{% static 'js/app.js' %}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

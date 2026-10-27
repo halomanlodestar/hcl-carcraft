@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}My orders{% endblock %}
+{% block content %}
+<div class="container" style="max-width: 56rem">
+  <div class="page-head"><div class="eyebrow">My account</div><h1>Orders</h1></div>
+  {% if orders %}
+  <div class="d-grid gap-3">
+    {% for o in orders %}
+    <a href="{% url 'store:order_detail' o.pk %}" class="cc-card card-hover p-3 p-md-4 text-reset d-block">
+      <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+        <b class="font-monospace">{{ o.number }}</b>
+        <span class="text-muted small divider-dot">{{ o.created_at|date:"j M Y" }}</span>
+        <span class="ms-auto">{% status_badge o.status o.get_status_display %}</span>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <div class="d-flex">
+          {% for item in o.items.all|slice:":4" %}
+          <span class="part-visual rounded-circle border border-2 border-white-subtle" style="--tint: {{ tints|get_item:item.part.category.slug }}; width: 2.6rem; aspect-ratio: 1; font-size: 1rem; margin-left: {% if forloop.first %}0{% else %}-.6rem{% endif %}"><i class="bi {{ item.part.category.icon }}"></i></span>
+          {% endfor %}
+        </div>
+        <span class="small text-muted flex-grow-1 text-truncate">{% for item in o.items.all|slice:":2" %}{{ item.part.name }}{% if not forloop.last %}, {% endif %}{% endfor %}{% if o.items.all|length > 2 %} +{{ o.items.all|length|add:"-2" }} more{% endif %}</span>
+        <b>{{ o.total|inr }}</b>
+        <i class="bi bi-chevron-right text-muted"></i>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="cc-card">{% include "partials/empty_state.html" with icon="bi-receipt" title="No orders yet" text="Parts and accessories you buy will show up here." cta_url="/store/" cta_label="Shop parts" %}</div>
+  {% endif %}
+</div>
+{% endblock %}

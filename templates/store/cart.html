@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Your cart{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="page-head"><div class="eyebrow">Parts store</div><h1>Your cart</h1></div>
+  {% if items %}
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="cc-card">
+        {% for item in items %}
+        {% with p=item.part tint=tints|get_item:item.part.category.slug %}
+        <div class="list-row flex-wrap">
+          <div class="part-visual rounded-3 border-0 flex-shrink-0" style="--tint: {{ tint }}; width: 4.5rem; font-size: 1.8rem; aspect-ratio: 1"><i class="bi {{ p.category.icon }}"></i></div>
+          <div class="flex-grow-1 min-w-0">
+            <a href="{% url 'store:part_detail' p.sku %}" class="fw-bold text-reset d-block text-truncate">{{ p.name }}</a>
+            <small class="text-muted">{{ p.brand }} · {{ p.price|inr }} each</small>
+            {% if item.quantity >= p.stock_qty %}<div class="small text-warning-emphasis"><i class="bi bi-info-circle"></i> Max available</div>{% endif %}
+          </div>
+          <form method="post" action="{% url 'store:cart_update' item.pk %}" class="qty">{% csrf_token %}
+            <button name="action" value="dec" aria-label="Decrease"><i class="bi {% if item.quantity == 1 %}bi-trash3{% else %}bi-dash{% endif %}"></i></button>
+            <span>{{ item.quantity }}</span>
+            <button name="action" value="inc" aria-label="Increase" {% if item.quantity >= p.stock_qty %}disabled{% endif %}><i class="bi bi-plus"></i></button>
+          </form>
+          <div class="fw-bold text-end" style="min-width: 6rem">{{ item.line_total|inr }}</div>
+        </div>
+        {% endwith %}
+        {% endfor %}
+      </div>
+      <a href="{% url 'store:list' %}" class="btn btn-link px-0 mt-2"><i class="bi bi-chevron-left"></i>Continue shopping</a>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="cc-card p-4" style="position: sticky; top: 5.5rem">
+        <div class="section-title"><i class="bi bi-receipt"></i>Order summary</div>
+        <form method="post" action="{% url 'store:apply_coupon' %}" class="mb-3">{% csrf_token %}
+          {% if coupon %}
+          <div class="d-flex align-items-center gap-2 p-2 rounded-3" style="background: rgba(18,183,106,.1)">
+            <i class="bi bi-ticket-perforated-fill text-success fs-5"></i>
+            <div class="flex-grow-1 lh-sm"><b class="font-monospace">{{ coupon.code }}</b><div class="small text-muted">{{ coupon.description }}</div></div>
+            <button name="remove" value="1" class="btn btn-icon btn-sm btn-soft" aria-label="Remove coupon"><i class="bi bi-x-lg"></i></button>
+          </div>
+          {% else %}
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-ticket-perforated"></i></span>
+            <input name="code" class="form-control text-uppercase" placeholder="Coupon code" aria-label="Coupon code">
+            <button class="btn btn-soft">Apply</button>
+          </div>
+          {% if coupon_error %}<div class="small text-danger mt-1">{{ coupon_error }}</div>{% endif %}
+          <div class="small text-muted mt-1">Try <span class="font-monospace">WELCOME10</span> or <span class="font-monospace">FLAT500</span></div>
+          {% endif %}
+        </form>
+        <div class="summary-row"><span class="text-muted">Subtotal</span><span>{{ totals.subtotal|inr:2 }}</span></div>
+        {% if totals.discount %}<div class="summary-row text-success"><span>Discount</span><span>−{{ totals.discount|inr:2 }}</span></div>{% endif %}
+        <div class="summary-row"><span class="text-muted">GST (18%)</span><span>{{ totals.tax|inr:2 }}</span></div>
+        <div class="summary-row"><span class="text-muted">Delivery</span><span class="text-success fw-semibold">Free</span></div>
+        <div class="summary-row total"><span>Total</span><span>{{ totals.total|inr:2 }}</span></div>
+        <a href="{% url 'store:checkout' %}" class="btn btn-primary btn-lg w-100 mt-3">Checkout <i class="bi bi-chevron-right"></i></a>
+        <div class="text-center small text-muted mt-2"><i class="bi bi-lock-fill"></i> Secure checkout</div>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="cc-card">{% include "partials/empty_state.html" with icon="bi-bag" title="Your cart is empty" text="Find genuine parts and accessories that fit your car." cta_url="/store/" cta_label="Shop parts" %}</div>
+  {% endif %}
+
+  {% if suggestions %}
+  <section class="mt-5">
+    <h2 class="h5 mb-3">You might also need</h2>
+    <div class="row g-3 row-cols-2 row-cols-md-4">
+      {% for p in suggestions %}<div class="col">{% include "partials/part_card.html" %}</div>{% endfor %}
+    </div>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

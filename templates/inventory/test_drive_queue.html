@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Test drives{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="page-head"><div class="eyebrow">Sales</div><h1>Test drives</h1></div>
+  <ul class="nav nav-pills-soft gap-1 mb-3 flex-nowrap overflow-auto">
+    {% for code, label, n in tabs %}
+    <li class="nav-item"><a class="nav-link {% if code == tab %}active{% endif %}" href="?tab={{ code }}">{{ label }} <span class="count">{{ n }}</span></a></li>
+    {% endfor %}
+  </ul>
+  <div class="cc-card overflow-hidden">
+    {% if drives %}
+    <div class="table-responsive"><table class="table table-hover">
+      <thead><tr><th>When</th><th>Car</th><th>Customer</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+      <tbody>
+      {% for d in drives %}
+      <tr>
+        <td class="text-nowrap"><b>{{ d.scheduled_at|date:"D, j M" }}</b><div class="small text-muted">{{ d.scheduled_at|date:"g:i A" }}</div></td>
+        <td><a href="{% url 'inventory:detail' d.vehicle.pk %}" class="d-flex align-items-center gap-2 text-reset">{% brand_logo d.vehicle.vehicle_model.make "sm" %}<span><b>{{ d.vehicle.vehicle_model.name }}</b> <span class="text-muted small">{{ d.vehicle.variant }}</span></span></a></td>
+        <td><div class="d-flex align-items-center gap-2"><span class="avatar" style="width:2rem;height:2rem;font-size:.7rem">{{ d.customer.initials }}</span><div class="lh-sm">{{ d.customer.display_name }}<div class="small text-muted">{{ d.customer.phone }}</div></div></div>{% if d.notes %}<div class="small text-muted mt-1"><i class="bi bi-chat-left-text me-1"></i>{{ d.notes|truncatechars:60 }}</div>{% endif %}</td>
+        <td>{% status_badge d.status d.get_status_display %}</td>
+        <td class="text-end text-nowrap">
+          <form method="post" action="{% url 'inventory:test_drive_action' d.pk %}" class="d-inline-flex gap-1">{% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            {% if d.status == "REQUESTED" %}
+              <button name="status" value="CONFIRMED" class="btn btn-sm btn-primary"><i class="bi bi-check-lg"></i>Confirm</button>
+              <button name="status" value="CANCELLED" class="btn btn-sm btn-soft" data-bs-toggle="tooltip" title="Decline" aria-label="Decline"><i class="bi bi-x-lg"></i></button>
+            {% elif d.status == "CONFIRMED" %}
+              <button name="status" value="COMPLETED" class="btn btn-sm btn-primary"><i class="bi bi-flag-fill"></i>Mark done</button>
+              <button name="status" value="CANCELLED" class="btn btn-sm btn-soft" data-bs-toggle="tooltip" title="Cancel" aria-label="Cancel"><i class="bi bi-x-lg"></i></button>
+            {% elif d.handled_by %}
+              <small class="text-muted">by {{ d.handled_by.first_name }}</small>
+            {% endif %}
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}
+      {% include "partials/empty_state.html" with icon="bi-calendar2-check" title="Nothing here" text="No test drives with this status right now." %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

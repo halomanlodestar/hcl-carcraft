@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Service jobs{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="page-head"><div class="eyebrow">Service centre</div><h1>Service jobs</h1></div>
+  <ul class="nav nav-pills-soft gap-1 mb-3 flex-nowrap overflow-auto">
+    {% for code, label, n in tabs %}
+    <li class="nav-item"><a class="nav-link text-nowrap {% if code == tab %}active{% endif %}" href="?tab={{ code }}">{% if code == "unassigned" and n %}<i class="bi bi-exclamation-circle-fill text-warning"></i>{% endif %}{{ label }} <span class="count">{{ n }}</span></a></li>
+    {% endfor %}
+  </ul>
+  <div class="cc-card overflow-hidden">
+    {% if page.object_list %}
+    <div class="table-responsive"><table class="table table-hover">
+      <thead><tr><th>Job</th><th>Car</th><th>Service</th><th>Date</th><th>Status</th><th style="min-width: 14rem">Technician</th></tr></thead>
+      <tbody>
+      {% for j in page.object_list %}
+      <tr data-href="{% url 'service:job_detail' j.pk %}">
+        <td class="font-monospace fw-semibold">{{ j.number }}</td>
+        <td><div class="d-flex align-items-center gap-2">{% brand_logo j.customer_vehicle.vehicle_model.make "sm" %}<div class="lh-sm"><b>{{ j.customer_vehicle.vehicle_model.name }}</b><div class="small text-muted">{{ j.customer_vehicle.owner.display_name }}</div></div></div></td>
+        <td class="small"><i class="bi {{ j.service_type.icon }} me-1 text-muted"></i>{{ j.service_type.name }}</td>
+        <td class="text-nowrap small">{{ j.scheduled_date|date:"j M" }}</td>
+        <td>{% status_badge j.status j.get_status_display %}</td>
+        <td>
+          {% if j.is_active %}
+          <form method="post" action="{% url 'service:job_assign' j.pk %}" class="d-flex gap-1">{% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <select name="mechanic" class="form-select form-select-sm {% if not j.mechanic %}border-warning{% endif %}" aria-label="Technician" onchange="this.form.requestSubmit()">
+              {% if not j.mechanic %}<option value="">Assign…</option>{% endif %}
+              {% for m in mechanics %}<option value="{{ m.pk }}" {% if m == j.mechanic %}selected{% endif %}>{{ m.display_name }}</option>{% endfor %}
+            </select>
+          </form>
+          {% else %}<span class="small">{{ j.mechanic.display_name|default:"—" }}</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}
+      {% include "partials/empty_state.html" with icon="bi-check2-circle" title="All clear" text="No jobs in this view." %}
+    {% endif %}
+  </div>
+  {% include "partials/pagination.html" %}
+</div>
+{% endblock %}

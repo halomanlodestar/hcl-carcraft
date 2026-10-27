@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}Record sale{% endblock %}
+{% block content %}
+<div class="container" style="max-width: 56rem">
+  <div class="page-head">
+    <nav aria-label="breadcrumb"><ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'inventory:detail' v.pk %}">{{ v.title }}</a></li>
+      <li class="breadcrumb-item active">Record sale</li>
+    </ol></nav>
+    <h1>Record a sale</h1>
+  </div>
+  <div class="row g-4">
+    <div class="col-md-5 order-md-last">
+      <div class="cc-card overflow-hidden">
+        <div class="car-stage" style="--car: {{ v.color_hex }}"><span class="stage-brand">{% brand_logo v.vehicle_model.make "md" %}</span>{% car_art v.vehicle_model.body_type v.color_hex %}</div>
+        <div class="p-3">
+          <b>{{ v.year }} {{ v.title }}</b><div class="small text-muted">{{ v.variant }} · {{ v.color }}</div>
+          <div class="d-flex justify-content-between mt-2"><span class="text-muted">List price</span><b>{{ v.price|inr }}</b></div>
+          <div class="d-flex justify-content-between"><span class="text-muted">VIN</span><span class="font-monospace small">{{ v.vin }}</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-7">
+      <form method="post" class="cc-card p-4">{% csrf_token %}
+        {{ form.customer|as_crispy_field }}
+        <div class="mb-3">
+          <label class="form-label" for="id_sale_price">Sale price</label>
+          <div class="input-group"><span class="input-group-text">₹</span><input type="number" step="1000" name="sale_price" id="id_sale_price" class="form-control" value="{{ form.sale_price.value|floatformat:0 }}"></div>
+          <div class="form-text">Adjust for any negotiated discount.</div>
+        </div>
+        {{ form.trade_in|as_crispy_field }}
+        <div class="alert alert-info small d-flex gap-2"><i class="bi bi-info-circle"></i><span>The car moves to the buyer's garage and they get a notification. You'll be able to print the invoice right after.</span></div>
+        <button class="btn btn-primary btn-lg w-100"><i class="bi bi-bag-check"></i>Confirm sale</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: carcraft-db
+    environment:
+      POSTGRES_DB: carcraft
+      POSTGRES_USER: carcraft
+      POSTGRES_PASSWORD: carcraft
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U carcraft"]
+      interval: 3s
+      retries: 20
+
+volumes:
+  pgdata:

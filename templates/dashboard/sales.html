@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="page-head d-flex flex-wrap justify-content-between align-items-end gap-2">
+    <div><div class="eyebrow">{% now "l, j F" %}</div><h1>Hi {{ user.first_name|default:user.username }}, ready to sell?</h1></div>
+    <a href="{% url 'inventory:list' %}" class="btn btn-primary"><i class="bi bi-car-front"></i>Browse stock</a>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-xl-3"><div class="cc-card kpi"><span class="ico ico-red"><i class="bi bi-trophy"></i></span><div><div class="kpi-label">My sales this month</div><div class="kpi-value">{{ kpi.my_sales_month }}</div><div class="kpi-sub">{{ kpi.my_revenue_month|lakh }} revenue</div></div></div></div>
+    <div class="col-6 col-xl-3"><a href="{% url 'inventory:test_drives' %}" class="cc-card card-hover kpi text-reset"><span class="ico ico-blue"><i class="bi bi-calendar-event"></i></span><div><div class="kpi-label">Test drives to confirm</div><div class="kpi-value">{{ kpi.pending_drives }}</div><div class="kpi-sub">Review <i class="bi bi-chevron-right"></i></div></div></a></div>
+    <div class="col-6 col-xl-3"><a href="{% url 'inventory:trade_ins' %}" class="cc-card card-hover kpi text-reset"><span class="ico ico-violet"><i class="bi bi-arrow-left-right"></i></span><div><div class="kpi-label">Trade-ins to value</div><div class="kpi-value">{{ kpi.pending_trade_ins }}</div><div class="kpi-sub">Make offers <i class="bi bi-chevron-right"></i></div></div></a></div>
+    <div class="col-6 col-xl-3"><a href="{% url 'inventory:list' %}" class="cc-card card-hover kpi text-reset"><span class="ico ico-green"><i class="bi bi-car-front"></i></span><div><div class="kpi-label">Cars in stock</div><div class="kpi-value">{{ kpi.in_stock }}</div><div class="kpi-sub">Ready to sell</div></div></a></div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="cc-card h-100">
+        <div class="card-header d-flex justify-content-between"><span><i class="bi bi-calendar-event me-2 text-primary"></i>Upcoming test drives</span><a href="{% url 'inventory:test_drives' %}" class="small fw-semibold">All <i class="bi bi-chevron-right"></i></a></div>
+        {% for d in drives %}
+        <div class="list-row">
+          <div class="text-center lh-1 px-2 py-1 rounded-3" style="background: var(--cc-surface-2); min-width: 3.2rem"><small class="text-muted d-block">{{ d.scheduled_at|date:"M" }}</small><b class="fs-5">{{ d.scheduled_at|date:"j" }}</b></div>
+          <div class="flex-grow-1 lh-sm min-w-0">
+            <div class="d-flex align-items-center gap-1">{% brand_logo d.vehicle.vehicle_model.make "sm" %}<b class="text-truncate">{{ d.vehicle.vehicle_model.name }}</b></div>
+            <small class="text-muted">{{ d.scheduled_at|date:"g:i A" }} · {{ d.customer.display_name }}</small>
+          </div>
+          {% if d.status == "REQUESTED" %}
+          <form method="post" action="{% url 'inventory:test_drive_action' d.pk %}">{% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <button name="status" value="CONFIRMED" class="btn btn-sm btn-primary"><i class="bi bi-check-lg"></i>Confirm</button>
+          </form>
+          {% else %}{% status_badge d.status d.get_status_display %}{% endif %}
+        </div>
+        {% empty %}
+        <div class="text-center text-muted py-5"><i class="bi bi-calendar2 fs-3 d-block mb-1"></i>No test drives scheduled</div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="cc-card p-4 h-100">
+        <div class="section-title"><i class="bi bi-graph-up"></i>My revenue, last 6 months</div>
+        <div class="chart-box sm"><canvas id="mySales" aria-label="My monthly revenue"></canvas></div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="cc-card h-100">
+        <div class="card-header d-flex justify-content-between"><span><i class="bi bi-arrow-left-right me-2 text-primary"></i>Trade-ins awaiting an offer</span><a href="{% url 'inventory:trade_ins' %}" class="small fw-semibold">All <i class="bi bi-chevron-right"></i></a></div>
+        {% for t in trade_ins %}
+        <a href="{% url 'inventory:trade_ins' %}" class="list-row">
+          {% brand_logo t.vehicle_model.make "md" %}
+          <div class="flex-grow-1 lh-sm"><b>{{ t.year }} {{ t.vehicle_model.name }}</b><div class="small text-muted">{{ t.customer.display_name }} · {{ t.km_driven|km }}</div></div>
+          <span class="small fw-semibold">{{ t.estimated_value|lakh }}</span>
+          <i class="bi bi-chevron-right chev ms-2"></i>
+        </a>
+        {% empty %}
+        <div class="text-center text-muted py-5"><i class="bi bi-inbox fs-3 d-block mb-1"></i>All caught up</div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="cc-card h-100">
+        <div class="card-header d-flex justify-content-between"><span><i class="bi bi-trophy me-2 text-primary"></i>My recent sales</span><a href="{% url 'inventory:sales' %}?mine=1" class="small fw-semibold">All <i class="bi bi-chevron-right"></i></a></div>
+        {% for s in recent_sales %}
+        <a href="{% url 'inventory:sale_detail' s.pk %}" class="list-row">
+          {% brand_logo s.vehicle.vehicle_model.make "md" %}
+          <div class="flex-grow-1 lh-sm"><b>{{ s.vehicle.vehicle_model.name }}</b><div class="small text-muted">{{ s.customer.display_name }} · {{ s.sold_at|date:"j M" }}</div></div>
+          <b class="small">{{ s.sale_price|lakh }}</b>
+        </a>
+        {% empty %}
+        <div class="text-center text-muted py-5"><i class="bi bi-trophy fs-3 d-block mb-1"></i>Your first sale is waiting</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{{ chart|json_script:"chart-data" }}
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="{% static 'js/charts.js' %}"></script>
+<script>
+  var d = JSON.parse(document.getElementById("chart-data").textContent);
+  CC.chart("mySales", function (t) {
+    return { type: "line", data: { labels: d.labels, datasets: [{ data: d.values, borderColor: CC.palette.red, backgroundColor: "rgba(224,49,59,.12)", fill: true, tension: .35, pointRadius: 4, pointBackgroundColor: CC.palette.red }] },
+      options: { scales: CC.moneyAxis(t), plugins: { legend: { display: false }, tooltip: { callbacks: { label: function (c) { return " " + CC.inr(c.raw); } } } } } };
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}My test drives{% endblock %}
+{% block content %}
+<div class="container" style="max-width: 56rem">
+  <div class="page-head d-flex justify-content-between align-items-end">
+    <div><div class="eyebrow">My account</div><h1>Test drives</h1></div>
+    <a href="{% url 'inventory:list' %}" class="btn btn-soft btn-sm"><i class="bi bi-plus-lg"></i>Book another</a>
+  </div>
+
+  <div class="section-title"><i class="bi bi-calendar-event"></i>Upcoming</div>
+  {% if upcoming %}
+  <div class="d-grid gap-3 mb-5">
+    {% for d in upcoming %}
+    <div class="cc-card p-3 d-flex flex-wrap align-items-center gap-3">
+      <div class="car-stage car-thumb" style="--car: {{ d.vehicle.color_hex }}">{% car_art d.vehicle.vehicle_model.body_type d.vehicle.color_hex "sm" %}</div>
+      <div class="flex-grow-1">
+        <div class="d-flex align-items-center gap-2">{% brand_logo d.vehicle.vehicle_model.make "sm" %}<b>{{ d.vehicle.title }}</b></div>
+        <div class="text-muted small">{{ d.vehicle.variant }}</div>
+        <div class="mt-1 fw-semibold"><i class="bi bi-clock me-1 text-primary"></i>{{ d.scheduled_at|date:"l, j M · g:i A" }}</div>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        {% status_badge d.status d.get_status_display %}
+        <form method="post" action="{% url 'inventory:test_drive_cancel' d.pk %}">{% csrf_token %}
+          <button class="btn btn-icon btn-sm btn-soft" data-confirm="Cancel this test drive?" aria-label="Cancel" data-bs-toggle="tooltip" title="Cancel"><i class="bi bi-x-lg"></i></button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="cc-card mb-5">{% include "partials/empty_state.html" with icon="bi-calendar-plus" title="No upcoming test drives" text="Found a car you like? Book a drive from its page." cta_url="/inventory/" cta_label="Browse cars" %}</div>
+  {% endif %}
+
+  {% if past %}
+  <div class="section-title"><i class="bi bi-clock-history"></i>History</div>
+  <div class="cc-card">
+    {% for d in past %}
+    <a href="{% url 'inventory:detail' d.vehicle.pk %}" class="list-row">
+      {% brand_logo d.vehicle.vehicle_model.make "md" %}
+      <div class="flex-grow-1"><b>{{ d.vehicle.title }}</b><div class="small text-muted">{{ d.scheduled_at|date:"j M Y · g:i A" }}</div></div>
+      {% status_badge d.status d.get_status_display %}
+      <i class="bi bi-chevron-right chev ms-2"></i>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

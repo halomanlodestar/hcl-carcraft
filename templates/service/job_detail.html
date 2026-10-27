@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}{{ job.number }}{% endblock %}
+{% block content %}
+{% with cv=job.customer_vehicle %}
+<div class="container" style="max-width: 68rem">
+  <div class="page-head d-flex flex-wrap justify-content-between align-items-end gap-3">
+    <div>
+      <nav aria-label="breadcrumb"><ol class="breadcrumb">
+        {% if user.is_customer %}<li class="breadcrumb-item"><a href="{% url 'service:garage' %}">My garage</a></li>
+        {% elif user.is_mechanic %}<li class="breadcrumb-item"><a href="{% url 'service:queue' %}">My jobs</a></li>
+        {% else %}<li class="breadcrumb-item"><a href="{% url 'service:manage' %}">Service jobs</a></li>{% endif %}
+        <li class="breadcrumb-item active">{{ job.number }}</li>
+      </ol></nav>
+      <h1 class="d-flex align-items-center gap-2"><i class="bi {{ job.service_type.icon }} text-primary"></i>{{ job.service_type.name }}</h1>
+      <div class="text-muted"><span class="font-monospace">{{ job.number }}</span><span class="divider-dot"></span>Booked for {{ job.scheduled_date|date:"D, j M Y" }}</div>
+    </div>
+    <div class="d-flex gap-2">
+      {% status_badge job.status job.get_status_display %}
+      {% if job.status == "READY" or job.status == "DELIVERED" %}<a href="{% url 'service:job_invoice' job.pk %}" target="_blank" class="btn btn-soft btn-sm"><i class="bi bi-file-earmark-pdf"></i>Invoice</a>{% endif %}
+    </div>
+  </div>
+
+  {% if job.status == "CANCELLED" %}
+  <div class="alert alert-danger d-flex gap-2 align-items-center"><i class="bi bi-x-octagon"></i>This service booking was cancelled.</div>
+  {% else %}
+  <div class="cc-card p-4 mb-4">
+    <div class="stepper">
+      <div class="progress-line" style="width: {{ progress }}%"></div>
+      {% for code, label, icon, state in steps %}
+      <div class="step {{ state }}">
+        <div class="bubble"><i class="bi {% if state == 'done' %}bi-check-lg{% else %}{{ icon }}{% endif %}"></i></div>
+        <div class="label">{{ label }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% if can_work and next_action %}
+    <form method="post" action="{% url 'service:job_advance' job.pk %}" class="d-flex flex-wrap gap-2 justify-content-center align-items-center mt-4 pt-3 border-top">{% csrf_token %}
+      <input type="hidden" name="status" value="{{ next_status }}">
+      {% if job.status == "INSPECTION" %}
+      <div class="input-group" style="max-width: 15rem"><span class="input-group-text"><i class="bi bi-speedometer2"></i></span><input type="number" name="odometer_km" class="form-control" placeholder="Odometer reading" value="{{ job.odometer_km|default:'' }}" min="{{ cv.km_driven }}" required><span class="input-group-text">km</span></div>
+      {% endif %}
+      <input type="text" name="note" class="form-control" style="max-width: 18rem" placeholder="Note for the customer (optional)">
+      {% if job.status == "BOOKED" and not job.mechanic %}
+        <button class="btn btn-primary" disabled><i class="bi {{ next_action.1 }}"></i>{{ next_action.0 }}</button>
+        <small class="text-muted w-100 text-center"><i class="bi bi-info-circle"></i> Assign a mechanic first</small>
+      {% else %}
+        <button class="btn btn-primary"><i class="bi {{ next_action.1 }}"></i>{{ next_action.0 }}</button>
+      {% endif %}
+    </form>
+    {% elif job.status == "READY" and user == job.customer %}
+    <div class="alert alert-success d-flex gap-2 align-items-center mt-4 mb-0"><i class="bi bi-check2-circle fs-5"></i>Your car is ready! Pick it up any time before 7:30 PM.</div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <div class="row g-4">
+    <div class="col-lg-7">
+      {% if can_work and job.status == "IN_PROGRESS" %}
+      <div class="cc-card p-4 mb-4">
+        <div class="section-title"><i class="bi bi-plus-circle"></i>Add parts used</div>
+        <form method="post" action="{% url 'service:job_add_part' job.pk %}" class="d-flex gap-2 flex-wrap">{% csrf_token %}
+          <select name="part" class="form-select flex-grow-1" style="min-width: 14rem" required aria-label="Part">
+            <option value="">Choose a part that fits this {{ cv.vehicle_model.name }}…</option>
+            {% regroup parts by category as cats %}
+            {% for cat in cats %}
+            <optgroup label="{{ cat.grouper.name }}">
+              {% for p in cat.list %}<option value="{{ p.pk }}">{{ p.name }} · {{ p.price|inr }} ({{ p.stock_qty }} in stock)</option>{% endfor %}
+            </optgroup>
+            {% endfor %}
+          </select>
+          <input type="number" name="qty" value="1" min="1" max="20" class="form-control" style="width: 5rem" aria-label="Quantity">
+          <button class="btn btn-primary"><i class="bi bi-plus-lg"></i>Add</button>
+        </form>
+        <small class="text-muted d-block mt-2"><i class="bi bi-box-seam"></i> Stock is deducted from the parts store automatically.</small>
+      </div>
+      {% endif %}
+
+      <div class="cc-card mb-4">
+        <div class="card-header d-flex justify-content-between"><span><i class="bi bi-receipt me-2 text-primary"></i>Bill</span>{% if job.is_active %}<small class="text-muted fw-normal">Estimate, updates as work progresses</small>{% endif %}</div>
+        <div class="list-row">
+          <span class="kpi p-0"><span class="ico ico-blue" style="width:2.4rem;height:2.4rem;font-size:1rem"><i class="bi bi-person-gear"></i></span></span>
+          <div class="flex-grow-1"><b>Labour</b><div class="small text-muted">{{ job.service_type.name }} · approx. {{ job.service_type.est_hours|floatformat }}h</div></div>
+          <b>{{ job.labour_charge|inr }}</b>
+        </div>
+        {% for sp in job.parts_used.all %}
+        <div class="list-row">
+          <span class="kpi p-0"><span class="ico ico-amber" style="width:2.4rem;height:2.4rem;font-size:1rem"><i class="bi bi-gear"></i></span></span>
+          <div class="flex-grow-1 min-w-0"><b class="d-block text-truncate">{{ sp.part.name }}</b><div class="small text-muted">{{ sp.quantity }} × {{ sp.unit_price|inr }}</div></div>
+          <b>{{ sp.line_total|inr }}</b>
+          {% if can_work and job.status == "IN_PROGRESS" %}
+          <form method="post" action="{% url 'service:job_remove_part' job.pk sp.pk %}">{% csrf_token %}<button class="btn btn-icon btn-sm btn-soft" aria-label="Remove part" data-bs-toggle="tooltip" title="Remove"><i class="bi bi-trash3"></i></button></form>
+          {% endif %}
+        </div>
+        {% empty %}
+        <div class="list-row text-muted small"><i class="bi bi-info-circle"></i>No parts used yet.</div>
+        {% endfor %}
+        <div class="px-4 py-3" style="background: var(--cc-surface-2)">
+          <div class="summary-row"><span class="text-muted">Subtotal</span><span>{{ job.subtotal|inr:2 }}</span></div>
+          <div class="summary-row"><span class="text-muted">GST (18%)</span><span>{{ job.tax|inr:2 }}</span></div>
+          <div class="summary-row total"><span>Total</span><span>{{ job.grand_total|inr:2 }}</span></div>
+        </div>
+      </div>
+
+      {% if job.complaint %}
+      <div class="cc-card p-4 mb-4">
+        <div class="section-title mb-2"><i class="bi bi-chat-left-text"></i>Reported issue</div>
+        <p class="mb-0 text-muted">“{{ job.complaint }}”</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="col-lg-5">
+      <div class="cc-card overflow-hidden mb-4">
+        <div class="car-stage" style="--car: {{ cv.color_hex }}"><span class="stage-brand">{% brand_logo cv.vehicle_model.make "md" %}</span>{% car_art cv.vehicle_model.body_type cv.color_hex %}</div>
+        <div class="p-3">
+          <b>{{ cv.vehicle_model }}</b>
+          <div class="d-flex align-items-center gap-2 mt-1">
+            <span class="font-monospace fw-bold px-2 py-1 rounded-2 small" style="background:#fde047;color:#111">{{ cv.reg_number }}</span>
+            <small class="text-muted">{{ cv.year }}{% if job.odometer_km %} · {{ job.odometer_km|km }} at check-in{% endif %}</small>
+          </div>
+          {% if not user.is_customer %}<div class="small mt-2"><i class="bi bi-person me-1 text-muted"></i>{{ cv.owner.display_name }}{% if cv.owner.phone %} · <i class="bi bi-telephone ms-1 me-1 text-muted"></i>{{ cv.owner.phone }}{% endif %}</div>{% endif %}
+        </div>
+      </div>
+
+      <div class="cc-card p-3 mb-4">
+        <div class="d-flex align-items-center gap-3">
+          {% if job.mechanic %}
+          <span class="avatar">{{ job.mechanic.initials }}</span>
+          <div class="flex-grow-1 lh-sm"><small class="text-muted">Your technician</small><div class="fw-bold">{{ job.mechanic.display_name }}</div></div>
+          {% else %}
+          <span class="avatar" style="background: var(--cc-surface-2); color: var(--cc-muted)"><i class="bi bi-person-dash"></i></span>
+          <div class="flex-grow-1 lh-sm"><small class="text-muted">Technician</small><div class="fw-bold">Not assigned yet</div></div>
+          {% endif %}
+        </div>
+        {% if mechanics and job.is_active %}
+        <form method="post" action="{% url 'service:job_assign' job.pk %}" class="d-flex gap-2 mt-3">{% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.path }}">
+          <select name="mechanic" class="form-select form-select-sm" aria-label="Mechanic">
+            {% for m in mechanics %}<option value="{{ m.pk }}" {% if m == job.mechanic %}selected{% endif %}>{{ m.display_name }} ({{ m.open_jobs }} open)</option>{% endfor %}
+          </select>
+          <button class="btn btn-sm btn-primary text-nowrap"><i class="bi bi-person-check"></i>{% if job.mechanic %}Reassign{% else %}Assign{% endif %}</button>
+        </form>
+        {% endif %}
+      </div>
+
+      <div class="cc-card p-4">
+        <div class="section-title"><i class="bi bi-clock-history"></i>Activity</div>
+        <ul class="timeline">
+          {% for log in job.logs.all %}
+          <li>
+            <span class="t-ico"><i class="bi {{ log.icon }}"></i></span>
+            <div class="fw-semibold">{{ log.get_status_display }}</div>
+            <small class="text-muted">{{ log.created_at|date:"j M, g:i A" }}{% if log.changed_by and not log.changed_by.is_customer %} · {{ log.changed_by.first_name }}{% endif %}</small>
+            {% if log.note %}<div class="small mt-1">{{ log.note }}</div>{% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      {% if can_cancel %}
+      <form method="post" action="{% url 'service:job_advance' job.pk %}" class="mt-3">{% csrf_token %}
+        <input type="hidden" name="status" value="CANCELLED">
+        <button class="btn btn-link text-danger px-0" data-confirm="Cancel this service booking?"><i class="bi bi-x-circle"></i>Cancel booking</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endwith %}
+{% endblock %}

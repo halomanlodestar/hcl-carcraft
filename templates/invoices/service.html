@@ -1,0 +1,29 @@
+{% extends "invoices/_base.html" %}
+{% block doc_title %}SERVICE INVOICE{% endblock %}
+{% block doc_meta %}Job card {{ job.number }}<br>Date: {{ job.completed_at|default:job.scheduled_date|date:"d M Y" }}{% endblock %}
+{% block body %}
+{% with cv=job.customer_vehicle %}
+<table>
+  <tr>
+    <td class="box" style="width:50%"><div class="label">Customer</div><b>{{ cv.owner.display_name }}</b><br>{{ cv.owner.phone }} · {{ cv.owner.email }}</td>
+    <td style="width:4%"></td>
+    <td class="box" style="width:46%"><div class="label">Vehicle</div><b>{{ cv.vehicle_model }} ({{ cv.year }})</b><br>Reg. no. {{ cv.reg_number }}{% if job.odometer_km %}<br>Odometer: {{ job.odometer_km }} km{% endif %}{% if job.mechanic %}<br>Technician: {{ job.mechanic.display_name }}{% endif %}</td>
+  </tr>
+</table>
+<br>
+<table class="items">
+  <tr><th>Description</th><th class="r" style="width:8%">Qty</th><th class="r" style="width:16%">Rate</th><th class="r" style="width:18%">Amount</th></tr>
+  <tr><td><b>Labour: {{ job.service_type.name }}</b><br><span class="muted">{{ job.service_type.description }}</span></td><td class="r">1</td><td class="r">{{ job.labour_charge|rs }}</td><td class="r">{{ job.labour_charge|rs }}</td></tr>
+  {% for sp in job.parts_used.all %}
+  <tr><td>{{ sp.part.name }}<br><span class="muted">{{ sp.part.sku }} · {{ sp.part.brand }}</span></td><td class="r">{{ sp.quantity }}</td><td class="r">{{ sp.unit_price|rs }}</td><td class="r">{{ sp.line_total|rs }}</td></tr>
+  {% endfor %}
+</table>
+<br>
+<table class="totals">
+  <tr><td style="width:55%"></td><td>Subtotal</td><td class="r">{{ job.subtotal|rs }}</td></tr>
+  <tr><td></td><td>GST @ 18%</td><td class="r">{{ job.tax|rs }}</td></tr>
+  <tr class="grand"><td></td><td>Total</td><td class="r">{{ job.grand_total|rs }}</td></tr>
+</table>
+{% if job.complaint %}<br><div class="muted"><b>Customer complaint:</b> {{ job.complaint }}</div>{% endif %}
+{% endwith %}
+{% endblock %}

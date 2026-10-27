@@ -1,0 +1,31 @@
+{% extends "invoices/_base.html" %}
+{% block doc_title %}VEHICLE SALE INVOICE{% endblock %}
+{% block doc_meta %}Invoice no. CC-VS-{{ sale.pk|stringformat:"05d" }}<br>Date: {{ sale.sold_at|date:"d M Y" }}{% endblock %}
+{% block body %}
+{% with v=sale.vehicle %}
+<table>
+  <tr>
+    <td class="box" style="width:50%"><div class="label">Billed to</div><b>{{ sale.customer.display_name }}</b><br>{{ sale.customer.address|default:"" }}<br>{{ sale.customer.phone }} · {{ sale.customer.email }}</td>
+    <td style="width:4%"></td>
+    <td class="box" style="width:46%"><div class="label">Sales executive</div><b>{{ sale.salesperson.display_name }}</b></td>
+  </tr>
+</table>
+<br>
+<table class="items">
+  <tr><th>Vehicle</th><th>Details</th><th class="r">Amount</th></tr>
+  <tr>
+    <td><b>{{ v.year }} {{ v.title }}</b><br><span class="muted">{{ v.variant }} · {{ v.color }}</span></td>
+    <td>VIN: {{ v.vin }}<br>{{ v.get_fuel_display }} · {{ v.get_transmission_display }} · {{ v.get_condition_display }}<br>Odometer: {{ v.mileage_km }} km</td>
+    <td class="r">{{ sale.sale_price|rs }}</td>
+  </tr>
+</table>
+<br>
+<table class="totals">
+  <tr><td style="width:60%"></td><td>Vehicle price (incl. GST &amp; cess)</td><td class="r">{{ sale.sale_price|rs }}</td></tr>
+  {% if sale.trade_in %}<tr><td></td><td>Less: trade-in ({{ sale.trade_in.year }} {{ sale.trade_in.vehicle_model }})</td><td class="r">- {{ sale.trade_in_credit|rs }}</td></tr>{% endif %}
+  <tr class="grand"><td></td><td>Amount payable</td><td class="r">{{ sale.amount_payable|rs }}</td></tr>
+</table>
+<br><br>
+<div class="muted" style="font-size:8.5pt">Registration, insurance and road tax are billed separately. Manufacturer warranty terms apply as per the warranty booklet.</div>
+{% endwith %}
+{% endblock %}

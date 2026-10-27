@@ -1,0 +1,8 @@
+Django>=5.1,<5.2
+psycopg[binary]>=3.2
+django-crispy-forms>=2.3
+crispy-bootstrap5>=2024.10
+xhtml2pdf>=0.2.16
+Pillow>=10.4
+Faker>=30.0
+python-dotenv>=1.0

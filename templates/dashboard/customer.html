@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="page-head">
+    <div class="eyebrow">Welcome back</div>
+    <h1>Hi {{ user.first_name|default:user.username }}</h1>
+  </div>
+
+  {% for t in offers %}
+  <div class="cc-card p-3 mb-3 d-flex flex-wrap align-items-center gap-3" style="border-color: #12b76a">
+    <span class="kpi p-0"><span class="ico ico-green"><i class="bi bi-tag"></i></span></span>
+    <div class="flex-grow-1"><b>You have an offer of {{ t.offered_value|inr }}</b><div class="small text-muted">for your {{ t.year }} {{ t.vehicle_model }}</div></div>
+    <a href="{% url 'inventory:my_trade_ins' %}" class="btn btn-primary btn-sm">Review offer <i class="bi bi-chevron-right"></i></a>
+  </div>
+  {% endfor %}
+
+  {% for j in active_jobs %}
+  <a href="{% url 'service:job_detail' j.pk %}" class="cc-card card-hover p-3 p-md-4 mb-3 d-block text-reset">
+    <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+      <div class="car-stage car-thumb" style="--car: {{ j.customer_vehicle.color_hex }}">{% car_art j.customer_vehicle.vehicle_model.body_type j.customer_vehicle.color_hex "sm" %}</div>
+      <div class="flex-grow-1"><small class="text-muted fw-semibold">Your car is in service</small><div class="fw-bold">{{ j.customer_vehicle.vehicle_model }} · {{ j.service_type.name }}</div></div>
+      {% status_badge j.status j.get_status_display %}
+      <span class="small fw-semibold text-primary">Track <i class="bi bi-chevron-right"></i></span>
+    </div>
+    <div class="mini-steps">{% for s in j.FLOW %}<span class="{% if forloop.counter0 <= j.step_index %}on{% endif %}"></span>{% endfor %}</div>
+  </a>
+  {% endfor %}
+
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3"><a href="{% url 'inventory:list' %}" class="cc-card card-hover cat-tile" style="--tint: #e0313b"><span class="ico"><i class="bi bi-car-front"></i></span>Browse cars</a></div>
+    <div class="col-6 col-lg-3"><a href="{% url 'service:book' %}" class="cc-card card-hover cat-tile" style="--tint: #12b76a"><span class="ico"><i class="bi bi-calendar-plus"></i></span>Book a service</a></div>
+    <div class="col-6 col-lg-3"><a href="{% url 'store:list' %}" class="cc-card card-hover cat-tile" style="--tint: #2e90fa"><span class="ico"><i class="bi bi-gear-wide-connected"></i></span>Shop parts</a></div>
+    <div class="col-6 col-lg-3"><a href="{% url 'inventory:trade_in' %}" class="cc-card card-hover cat-tile" style="--tint: #7a5af8"><span class="ico"><i class="bi bi-arrow-left-right"></i></span>Value my car</a></div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="cc-card h-100">
+        <div class="card-header d-flex justify-content-between"><span><i class="bi bi-house-door me-2 text-primary"></i>My garage</span><a href="{% url 'service:garage' %}" class="small fw-semibold">Manage <i class="bi bi-chevron-right"></i></a></div>
+        {% for car in garage %}
+        <a href="{% url 'service:garage' %}" class="list-row">
+          <div class="car-stage car-thumb" style="--car: {{ car.color_hex }}; width: 5rem">{% car_art car.vehicle_model.body_type car.color_hex "sm" %}</div>
+          <div class="flex-grow-1 lh-sm"><div class="d-flex align-items-center gap-1">{% brand_logo car.vehicle_model.make "sm" %}<b>{{ car.vehicle_model.name }}</b></div><small class="text-muted font-monospace">{{ car.reg_number }}</small></div>
+          {% if car in due %}<span class="due-pill"><i class="bi bi-exclamation-triangle-fill"></i>Service due</span>{% elif car.active_job %}<span class="badge-status badge-status-primary"><i class="bi bi-wrench-adjustable"></i>In service</span>{% else %}<span class="ok-pill"><i class="bi bi-check-circle-fill"></i>All good</span>{% endif %}
+        </a>
+        {% empty %}
+        {% include "partials/empty_state.html" with icon="bi-house-door" title="No cars yet" text="Add your car to book service and find parts that fit." cta_url="/service/garage/add/" cta_label="Add a car" %}
+        {% endfor %}
+      </div>
+    </div>
+    <div class="col-lg-5 d-flex flex-column gap-4">
+      <div class="cc-card">
+        <div class="card-header d-flex justify-content-between"><span><i class="bi bi-calendar-event me-2 text-primary"></i>Test drives</span><a href="{% url 'inventory:my_test_drives' %}" class="small fw-semibold">All <i class="bi bi-chevron-right"></i></a></div>
+        {% for d in upcoming %}
+        <a href="{% url 'inventory:my_test_drives' %}" class="list-row">
+          {% brand_logo d.vehicle.vehicle_model.make "md" %}
+          <div class="flex-grow-1 lh-sm"><b>{{ d.vehicle.vehicle_model.name }}</b><div class="small text-muted">{{ d.scheduled_at|date:"D j M, g:i A" }}</div></div>
+          {% status_badge d.status d.get_status_display %}
+        </a>
+        {% empty %}
+        <div class="text-center text-muted small py-4">No upcoming test drives</div>
+        {% endfor %}
+      </div>
+      <div class="cc-card">
+        <div class="card-header d-flex justify-content-between"><span><i class="bi bi-receipt me-2 text-primary"></i>Recent orders</span><a href="{% url 'store:orders' %}" class="small fw-semibold">All <i class="bi bi-chevron-right"></i></a></div>
+        {% for o in orders %}
+        <a href="{% url 'store:order_detail' o.pk %}" class="list-row">
+          <i class="bi bi-box-seam text-muted"></i>
+          <div class="flex-grow-1 lh-sm"><b class="font-monospace small">{{ o.number }}</b><div class="small text-muted">{{ o.created_at|date:"j M Y" }}</div></div>
+          {% status_badge o.status o.get_status_display %}
+        </a>
+        {% empty %}
+        <div class="text-center text-muted small py-4">No orders yet</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

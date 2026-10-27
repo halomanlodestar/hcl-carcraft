@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Trade-in requests{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="page-head"><div class="eyebrow">Sales</div><h1>Trade-in requests</h1></div>
+  <ul class="nav nav-pills-soft gap-1 mb-3 flex-nowrap overflow-auto">
+    {% for code, label, n in tabs %}
+    <li class="nav-item"><a class="nav-link {% if code == tab %}active{% endif %}" href="?tab={{ code }}">{{ label }} <span class="count">{{ n }}</span></a></li>
+    {% endfor %}
+  </ul>
+  <div class="cc-card overflow-hidden">
+    {% if items %}
+    <div class="table-responsive"><table class="table">
+      <thead><tr><th>Car</th><th>Customer</th><th>Details</th><th class="text-end">Estimate</th><th style="min-width: 17rem">{% if tab == "PENDING" or tab == "OFFERED" %}Offer{% else %}Final{% endif %}</th></tr></thead>
+      <tbody>
+      {% for t in items %}
+      <tr>
+        <td><div class="d-flex align-items-center gap-2">{% brand_logo t.vehicle_model.make "md" %}<div class="lh-sm"><b>{{ t.vehicle_model.name }}</b><div class="small text-muted">{{ t.year }}</div></div></div></td>
+        <td>{{ t.customer.display_name }}<div class="small text-muted">{{ t.created_at|date:"j M" }}</div></td>
+        <td class="small"><i class="bi bi-speedometer2 me-1 text-muted"></i>{{ t.km_driven|km }}<br><i class="bi bi-clipboard-check me-1 text-muted"></i>{{ t.get_condition_rating_display }}</td>
+        <td class="text-end fw-semibold">{{ t.estimated_value|inr }}</td>
+        <td>
+          {% if t.status == "PENDING" or t.status == "OFFERED" %}
+          <form method="post" action="{% url 'inventory:trade_in_offer' t.pk %}" class="d-flex gap-1">{% csrf_token %}
+            <input type="hidden" name="tab" value="{{ tab }}">
+            <div class="input-group input-group-sm"><span class="input-group-text">₹</span><input type="number" name="offered_value" class="form-control" value="{{ t.offered_value|default:t.estimated_value|floatformat:0 }}" step="1000" aria-label="Offer amount"></div>
+            <button class="btn btn-primary btn-sm text-nowrap"><i class="bi bi-send"></i>{% if t.status == "OFFERED" %}Revise{% else %}Offer{% endif %}</button>
+            <button class="btn btn-soft btn-sm" name="decision" value="reject" data-bs-toggle="tooltip" title="Reject" aria-label="Reject"><i class="bi bi-x-lg"></i></button>
+          </form>
+          {% else %}
+            {% status_badge t.status t.get_status_display %} {% if t.offered_value %}<b class="ms-1">{{ t.offered_value|inr }}</b>{% endif %}
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}
+      {% include "partials/empty_state.html" with icon="bi-inbox" title="Nothing here" text="No trade-in requests with this status." %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

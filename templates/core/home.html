@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}New &amp; pre-owned cars, parts and service{% endblock %}
+{% block content %}
+<section class="hero pb-5">
+  <div class="container py-5">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-6">
+        <span class="badge rounded-pill text-bg-dark border border-secondary-subtle mb-3 px-3 py-2 fw-semibold"><i class="bi bi-stars me-1 text-warning"></i> Festive offers live on 30+ cars</span>
+        <h1 class="mb-3">Find the car that fits your life.</h1>
+        <p class="lead mb-4">Browse new and certified pre-owned cars, book a test drive in seconds, and keep your car running with genuine parts and expert service.</p>
+        <div class="d-flex gap-4 mt-4">
+          <div class="hero-stat"><b>{{ stats.in_stock }}</b>cars in stock</div>
+          <div class="hero-stat"><b>{{ stats.brands }}</b>top brands</div>
+          <div class="hero-stat"><b>{{ stats.sold }}+</b>happy owners</div>
+          <div class="hero-stat d-none d-sm-block"><b>{{ stats.parts }}</b>genuine parts</div>
+        </div>
+      </div>
+      <div class="col-lg-6 text-center">
+        <svg class="hero-car" viewBox="0 0 320 140" aria-hidden="true"><use href="#car-SUV"/></svg>
+      </div>
+    </div>
+    <form class="hero-search mt-5" action="{% url 'inventory:list' %}" method="get">
+      <select class="form-select" name="make" aria-label="Brand">
+        <option value="">Any brand</option>
+        {% for m in makes %}<option value="{{ m.slug }}">{{ m.name }}</option>{% endfor %}
+      </select>
+      <select class="form-select" name="body" aria-label="Body type">
+        <option value="">Any body type</option>
+        {% for code, label, n in body_types %}<option value="{{ code }}">{{ label }}</option>{% endfor %}
+      </select>
+      <select class="form-select" name="max_price" aria-label="Budget">
+        <option value="">Any budget</option>
+        <option value="500000">Under ₹5 Lakh</option>
+        <option value="1000000">Under ₹10 Lakh</option>
+        <option value="1500000">Under ₹15 Lakh</option>
+        <option value="2500000">Under ₹25 Lakh</option>
+      </select>
+      <button class="btn btn-primary px-4 flex-grow-1 flex-md-grow-0"><i class="bi bi-search"></i> Search cars</button>
+    </form>
+  </div>
+</section>
+
+<div class="container">
+  <section class="mt-5">
+    <div class="d-flex justify-content-between align-items-end mb-3">
+      <div><div class="eyebrow">Browse by brand</div><h2 class="h4 mb-0">Top brands in our showroom</h2></div>
+    </div>
+    <div class="auto-grid" style="--min: 92px">
+      {% for m in makes %}
+      <div class="col">
+        <a class="brand-chip" href="{% url 'inventory:list' %}?make={{ m.slug }}" title="{{ m.name }}">
+          {% brand_logo m "lg" %}
+          <span class="d-none d-md-block">{{ m.n }} car{{ m.n|pluralize }}</span>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="mt-5">
+    <div class="eyebrow">Browse by body type</div>
+    <h2 class="h4 mb-3">What are you looking for?</h2>
+    <div class="row g-3 row-cols-2 row-cols-md-5">
+      {% for code, label, n in body_types %}
+      <div class="col">
+        <a href="{% url 'inventory:list' %}?body={{ code }}" class="cc-card card-hover d-block text-center p-3 text-reset">
+          <svg viewBox="0 0 320 140" class="w-100" style="color: var(--cc-muted); max-width: 150px"><use href="#car-{{ code }}"/></svg>
+          <div class="fw-bold mt-1">{{ label }}</div>
+          <small class="text-muted">{{ n }} available</small>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="mt-5">
+    <div class="d-flex justify-content-between align-items-end mb-3">
+      <div><div class="eyebrow">Just arrived</div><h2 class="h4 mb-0">Fresh in the showroom</h2></div>
+      <a href="{% url 'inventory:list' %}" class="btn btn-soft btn-sm">View all <i class="bi bi-chevron-right"></i></a>
+    </div>
+    <div class="row g-4 row-cols-1 row-cols-sm-2 row-cols-lg-3">
+      {% for v in featured %}<div class="col">{% include "partials/vehicle_card.html" %}</div>{% endfor %}
+    </div>
+  </section>
+
+  <section class="mt-5">
+    <div class="row g-3">
+      <div class="col-md-6 col-lg-3">
+        <a href="{% url 'service:book' %}" class="cc-card card-hover feature-tile">
+          <span class="ico"><i class="bi bi-wrench-adjustable"></i></span>
+          <div><h3>Book a service</h3><p>Pick a slot and track every step live.</p></div>
+          <i class="bi bi-chevron-right go"></i>
+        </a>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <a href="{% url 'store:list' %}" class="cc-card card-hover feature-tile">
+          <span class="ico"><i class="bi bi-gear-wide-connected"></i></span>
+          <div><h3>Shop parts</h3><p>Genuine parts filtered to fit your car.</p></div>
+          <i class="bi bi-chevron-right go"></i>
+        </a>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <a href="{% url 'inventory:trade_in' %}" class="cc-card card-hover feature-tile">
+          <span class="ico"><i class="bi bi-arrow-left-right"></i></span>
+          <div><h3>Trade in</h3><p>Get an instant value for your old car.</p></div>
+          <i class="bi bi-chevron-right go"></i>
+        </a>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <a href="{% url 'inventory:list' %}" class="cc-card card-hover feature-tile">
+          <span class="ico"><i class="bi bi-calculator"></i></span>
+          <div><h3>Plan your EMI</h3><p>See monthly payments on every car.</p></div>
+          <i class="bi bi-chevron-right go"></i>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="mt-5">
+    <div class="d-flex justify-content-between align-items-end mb-3">
+      <div><div class="eyebrow">Parts &amp; accessories</div><h2 class="h4 mb-0">Shop by category</h2></div>
+      <a href="{% url 'store:list' %}" class="btn btn-soft btn-sm">All parts <i class="bi bi-chevron-right"></i></a>
+    </div>
+    <div class="auto-grid" style="--min: 128px">
+      {% for c, tint in categories %}
+      <div class="col">
+        <a href="{% url 'store:list' %}?category={{ c.slug }}" class="cc-card card-hover cat-tile" style="--tint: {{ tint }}">
+          <span class="ico"><i class="bi {{ c.icon }}"></i></span>{{ c.name }}
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+{% endblock %}

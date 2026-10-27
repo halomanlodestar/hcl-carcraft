@@ -1,0 +1,26 @@
+{% extends "invoices/_base.html" %}
+{% block doc_title %}TAX INVOICE{% endblock %}
+{% block doc_meta %}Order {{ order.number }}<br>Date: {{ order.paid_at|default:order.created_at|date:"d M Y" }}{% endblock %}
+{% block body %}
+<table>
+  <tr>
+    <td class="box" style="width:50%"><div class="label">Billed to</div><b>{{ order.customer.display_name }}</b><br>{{ order.customer.phone }} · {{ order.customer.email }}</td>
+    <td style="width:4%"></td>
+    <td class="box" style="width:46%"><div class="label">Ship to</div>{{ order.shipping_address|linebreaksbr }}</td>
+  </tr>
+</table>
+<br>
+<table class="items">
+  <tr><th style="width:12%">SKU</th><th>Item</th><th class="r" style="width:8%">Qty</th><th class="r" style="width:16%">Unit price</th><th class="r" style="width:18%">Amount</th></tr>
+  {% for item in order.items.all %}
+  <tr><td>{{ item.part.sku }}</td><td>{{ item.part.name }}<br><span class="muted">{{ item.part.brand }}</span></td><td class="r">{{ item.quantity }}</td><td class="r">{{ item.unit_price|rs }}</td><td class="r">{{ item.line_total|rs }}</td></tr>
+  {% endfor %}
+</table>
+<br>
+<table class="totals">
+  <tr><td style="width:55%"></td><td>Subtotal</td><td class="r">{{ order.subtotal|rs }}</td></tr>
+  {% if order.discount %}<tr><td></td><td>Discount{% if order.coupon %} ({{ order.coupon.code }}){% endif %}</td><td class="r">- {{ order.discount|rs }}</td></tr>{% endif %}
+  <tr><td></td><td>GST @ 18%</td><td class="r">{{ order.tax|rs }}</td></tr>
+  <tr class="grand"><td></td><td>Total</td><td class="r">{{ order.total|rs }}</td></tr>
+</table>
+{% endblock %}

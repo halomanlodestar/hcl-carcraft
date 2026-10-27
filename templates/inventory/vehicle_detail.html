@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ v.year }} {{ v.title }}{% endblock %}
+{% block content %}
+{% with vm=v.vehicle_model %}
+<div class="container">
+  <div class="pt-4">
+    <nav aria-label="breadcrumb"><ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'inventory:list' %}">Cars</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'inventory:list' %}?make={{ vm.make.slug }}">{{ vm.make.name }}</a></li>
+      <li class="breadcrumb-item active" aria-current="page">{{ vm.name }}</li>
+    </ol></nav>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="cc-card overflow-hidden">
+        <div class="car-stage car-stage-lg rounded-0" style="--car: {{ v.color_hex }}">
+          <span class="stage-brand">{% brand_logo vm.make "lg" %}</span>
+          <span class="stage-tags">
+            {% if v.condition == "NEW" %}<span class="tag tag-new">NEW</span>{% else %}<span class="tag tag-used"><i class="bi bi-patch-check"></i>Certified pre-owned</span>{% endif %}
+          </span>
+          {% car_art vm.body_type v.color_hex %}
+        </div>
+        <div class="row g-0 text-center border-top">
+          <div class="col-6 col-md-3 p-3 border-end"><i class="bi bi-calendar3 fs-5 text-primary"></i><div class="fw-bold mt-1">{{ v.year }}</div><small class="text-muted">Model year</small></div>
+          <div class="col-6 col-md-3 p-3 border-end"><i class="bi {{ v.fuel|fuel_icon }} fs-5 text-primary"></i><div class="fw-bold mt-1">{{ v.get_fuel_display }}</div><small class="text-muted">Fuel</small></div>
+          <div class="col-6 col-md-3 p-3 border-end"><i class="bi {{ v.transmission|trans_icon }} fs-5 text-primary"></i><div class="fw-bold mt-1">{{ v.get_transmission_display }}</div><small class="text-muted">Transmission</small></div>
+          <div class="col-6 col-md-3 p-3"><i class="bi bi-speedometer2 fs-5 text-primary"></i><div class="fw-bold mt-1">{{ v.mileage_km|km }}</div><small class="text-muted">Driven</small></div>
+        </div>
+      </div>
+
+      {% if specs %}
+      <div class="cc-card p-4 mt-4">
+        <div class="section-title"><i class="bi bi-clipboard-data"></i>Specifications</div>
+        <div class="spec-grid">
+          {% for label, value, unit, icon in specs %}
+          <div class="spec"><i class="bi {{ icon }}"></i><div class="v">{{ value }}{% if unit %} <small class="text-muted fw-semibold">{{ unit }}</small>{% endif %}</div><div class="l">{{ label }}</div></div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      {% if v.features %}
+      <div class="cc-card p-4 mt-4">
+        <div class="section-title"><i class="bi bi-stars"></i>Features</div>
+        <div class="feature-list">
+          {% for f in v.features %}<div><i class="bi bi-check-circle-fill"></i>{{ f }}</div>{% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="cc-card p-4 mt-4" id="emi" data-price="{{ v.price|floatformat:0 }}">
+        <div class="section-title"><i class="bi bi-calculator"></i>EMI calculator</div>
+        <div class="row g-4">
+          <div class="col-md-7">
+            <div class="mb-3">
+              <div class="d-flex justify-content-between"><label class="form-label" for="emiDown">Down payment</label><b id="emiDownOut" class="tabular"></b></div>
+              <input type="range" class="form-range" id="emiDown" min="0" max="80" step="5" value="20">
+            </div>
+            <div class="mb-3">
+              <div class="d-flex justify-content-between"><label class="form-label" for="emiRate">Interest rate</label><b id="emiRateOut" class="tabular"></b></div>
+              <input type="range" class="form-range" id="emiRate" min="7" max="16" step="0.25" value="9.5">
+            </div>
+            <label class="form-label d-block">Loan tenure</label>
+            <div class="d-flex flex-wrap gap-2" id="emiTenure">
+              <label class="chip-check"><input type="radio" name="tenure" value="12"><span>1 yr</span></label>
+              <label class="chip-check"><input type="radio" name="tenure" value="24"><span>2 yrs</span></label>
+              <label class="chip-check"><input type="radio" name="tenure" value="36"><span>3 yrs</span></label>
+              <label class="chip-check"><input type="radio" name="tenure" value="48"><span>4 yrs</span></label>
+              <label class="chip-check"><input type="radio" name="tenure" value="60" checked><span>5 yrs</span></label>
+              <label class="chip-check"><input type="radio" name="tenure" value="84"><span>7 yrs</span></label>
+            </div>
+          </div>
+          <div class="col-md-5">
+            <div class="estimate-box h-100 d-flex flex-column">
+              <small class="opacity-75 fw-semibold">Monthly EMI</small>
+              <div class="amount tabular" id="emiOut">—</div>
+              <div class="progress mt-3 mb-2" style="height:8px;background:rgba(255,255,255,.15)" role="progressbar" aria-label="Principal vs interest">
+                <div class="progress-bar" id="emiBar" style="background:#fff"></div>
+              </div>
+              <div class="d-flex justify-content-between small"><span><i class="bi bi-circle-fill me-1" style="font-size:.5rem"></i>Loan <b id="emiLoan" class="tabular"></b></span><span class="opacity-75"><i class="bi bi-circle me-1" style="font-size:.5rem"></i>Interest <b id="emiInt" class="tabular"></b></span></div>
+              <div class="mt-auto pt-3 small opacity-75">Total payable <b id="emiTotal" class="tabular text-white"></b></div>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-link px-0 mt-3 text-decoration-none" type="button" data-bs-toggle="collapse" data-bs-target="#amort" aria-expanded="false">
+          <i class="bi bi-table"></i> Year-by-year breakdown <i class="bi bi-chevron-down small"></i>
+        </button>
+        <div class="collapse" id="amort">
+          <div class="table-responsive border rounded-3 mt-2"><table class="table table-sm mb-0">
+            <thead><tr><th>Year</th><th class="text-end">Principal paid</th><th class="text-end">Interest paid</th><th class="text-end">Balance</th></tr></thead>
+            <tbody id="amortBody"></tbody>
+          </table></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="cc-card p-4" style="position: sticky; top: 5.5rem">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          {% brand_logo vm.make "md" %}
+          {% status_badge v.status v.get_status_display %}
+        </div>
+        <h1 class="h3 mb-0">{{ v.title }}</h1>
+        <div class="text-muted">{{ v.variant }} · {{ vm.get_body_type_display }}</div>
+        <div class="d-flex align-items-center gap-2 mt-2 small"><span class="color-dot" style="--c: {{ v.color_hex }}"></span>{{ v.color }}</div>
+        <div class="my-3">
+          <div class="price" style="font-size: 2rem">{{ v.price|inr }}</div>
+          <small class="text-muted">{% if v.condition == "NEW" %}Ex-showroom price{% else %}Fixed price, no haggling{% endif %}</small>
+        </div>
+
+        <div class="d-grid gap-2">
+          {% if v.status != "SOLD" %}
+            {% if user.is_sales or user.is_admin_role %}
+              <a href="{% url 'inventory:sell' v.pk %}" class="btn btn-primary btn-lg"><i class="bi bi-bag-check"></i>Record sale</a>
+            {% else %}
+              <a href="{% url 'inventory:test_drive_book' v.pk %}" class="btn btn-primary btn-lg"><i class="bi bi-calendar-check"></i>Book a test drive</a>
+            {% endif %}
+            <div class="d-flex gap-2">
+              <button type="submit" form="compareForm" formaction="{% url 'inventory:compare_toggle' v.pk %}" class="btn btn-soft flex-fill {% if v.pk in compare_ids %}active{% endif %}">
+                <i class="bi {% if v.pk in compare_ids %}bi-check-lg{% else %}bi-layout-split{% endif %}"></i>{% if v.pk in compare_ids %}Added{% else %}Compare{% endif %}
+              </button>
+              <a href="#emi" class="btn btn-soft flex-fill"><i class="bi bi-calculator"></i>EMI</a>
+            </div>
+          {% else %}
+            <div class="alert alert-secondary mb-0 d-flex gap-2 align-items-center"><i class="bi bi-bag-check"></i>This car has found a new home.</div>
+          {% endif %}
+        </div>
+
+        <a href="{% url 'inventory:trade_in' %}" class="d-flex align-items-center gap-3 p-3 mt-3 rounded-3 text-reset" style="background: var(--cc-surface-2)">
+          <span class="kpi p-0"><span class="ico ico-violet" style="width:2.4rem;height:2.4rem;font-size:1.1rem"><i class="bi bi-arrow-left-right"></i></span></span>
+          <span class="lh-sm flex-grow-1"><b class="d-block">Have a car to trade in?</b><small class="text-muted">Get an instant estimate</small></span>
+          <i class="bi bi-chevron-right text-muted"></i>
+        </a>
+
+        <ul class="list-unstyled small mt-3 mb-0 d-grid gap-2 text-muted">
+          <li><i class="bi bi-shield-check text-success me-2"></i>{% if v.condition == "NEW" %}3-year manufacturer warranty{% else %}140-point quality check{% endif %}</li>
+          <li><i class="bi bi-cash-coin text-success me-2"></i>Easy finance from 8.75% p.a.</li>
+          <li><i class="bi bi-tools text-success me-2"></i>First service free at CarCraft</li>
+          <li><i class="bi bi-upc-scan text-success me-2"></i>VIN <span class="font-monospace">{{ v.vin }}</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  {% if similar %}
+  <section class="mt-5">
+    <h2 class="h4 mb-3">Similar {{ vm.get_body_type_display }}s</h2>
+    <div class="row g-4 row-cols-1 row-cols-sm-2 row-cols-lg-3">
+      {% for v in similar %}<div class="col">{% include "partials/vehicle_card.html" %}</div>{% endfor %}
+    </div>
+  </section>
+  {% endif %}
+</div>
+{% endwith %}
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/emi.js' %}"></script>{% endblock %}

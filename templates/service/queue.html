@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}My jobs{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="page-head">
+    <div class="eyebrow">Workshop</div>
+    <h1>My jobs</h1>
+    <p class="text-muted mb-0">{{ total }} open job{{ total|pluralize }} assigned to you.</p>
+  </div>
+  <div class="row g-3">
+    {% for code, label, icon, jobs in columns %}
+    <div class="col-md-6 col-xl-3">
+      <div class="d-flex align-items-center gap-2 mb-2 px-1">
+        <i class="bi {{ icon }} text-primary"></i><b>{{ label }}</b><span class="badge rounded-pill text-bg-secondary ms-auto">{{ jobs|length }}</span>
+      </div>
+      <div class="d-grid gap-2 p-2 rounded-4" style="background: var(--cc-surface-2); min-height: 8rem">
+        {% for j in jobs %}
+        <a href="{% url 'service:job_detail' j.pk %}" class="cc-card card-hover p-3 text-reset d-block">
+          <div class="d-flex align-items-center gap-2 mb-1">
+            {% brand_logo j.customer_vehicle.vehicle_model.make "sm" %}<b class="text-truncate">{{ j.customer_vehicle.vehicle_model.name }}</b>
+            <span class="font-monospace small ms-auto text-muted">{{ j.customer_vehicle.reg_number }}</span>
+          </div>
+          <div class="small"><i class="bi {{ j.service_type.icon }} me-1 text-muted"></i>{{ j.service_type.name }}</div>
+          <div class="d-flex justify-content-between align-items-center mt-2 small text-muted">
+            <span><i class="bi bi-calendar3 me-1"></i>{% if j.scheduled_date == today %}Today{% else %}{{ j.scheduled_date|date:"j M" }}{% endif %}</span>
+            <span class="fw-semibold">{{ j.number }} <i class="bi bi-chevron-right"></i></span>
+          </div>
+        </a>
+        {% empty %}
+        <div class="text-center text-muted small py-4"><i class="bi bi-inbox d-block fs-4 mb-1"></i>Nothing here</div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if done_recent %}
+  <div class="section-title mt-5"><i class="bi bi-check2-all"></i>Recently delivered</div>
+  <div class="cc-card">
+    {% for j in done_recent %}
+    <a href="{% url 'service:job_detail' j.pk %}" class="list-row">
+      {% brand_logo j.customer_vehicle.vehicle_model.make "md" %}
+      <div class="flex-grow-1"><b>{{ j.customer_vehicle.vehicle_model.name }}</b> <span class="text-muted small">{{ j.service_type.name }}</span></div>
+      <small class="text-muted">{{ j.completed_at|date:"j M" }}</small>
+      <i class="bi bi-chevron-right chev ms-2"></i>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

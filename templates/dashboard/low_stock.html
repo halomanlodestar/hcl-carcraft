@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Stock levels{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="page-head d-flex flex-wrap justify-content-between align-items-end gap-2">
+    <div><div class="eyebrow">Inventory</div><h1>{% if show_all %}All parts stock{% else %}Low stock{% endif %}</h1>
+      <p class="text-muted mb-0">{% if show_all %}Every part, lowest stock first.{% else %}Parts at or below their reorder level.{% endif %}</p></div>
+    <div class="nav nav-pills-soft">
+      <a class="nav-link {% if not show_all %}active{% endif %}" href="?"><i class="bi bi-exclamation-triangle"></i>Low stock</a>
+      <a class="nav-link {% if show_all %}active{% endif %}" href="?all=1"><i class="bi bi-list-ul"></i>All parts</a>
+    </div>
+  </div>
+  <div class="cc-card overflow-hidden">
+    {% if parts %}
+    <div class="table-responsive"><table class="table">
+      <thead><tr><th>Part</th><th>SKU</th><th style="min-width: 10rem">Stock</th><th class="text-end">Price</th>{% if user.is_admin_role %}<th style="min-width: 11rem">Restock</th>{% endif %}</tr></thead>
+      <tbody>
+      {% for p in parts %}
+      <tr>
+        <td><div class="d-flex align-items-center gap-2"><i class="bi {{ p.category.icon }} text-muted"></i><div class="lh-sm"><a href="{% url 'store:part_detail' p.sku %}" class="text-reset fw-semibold">{{ p.name }}</a><div class="small text-muted">{{ p.brand }}</div></div></div></td>
+        <td class="font-monospace small">{{ p.sku }}</td>
+        <td>
+          <div class="d-flex justify-content-between small"><b class="{% if p.stock_qty == 0 %}text-danger{% elif p.is_low_stock %}text-warning-emphasis{% endif %}">{{ p.stock_qty }}</b><span class="text-muted">reorder at {{ p.reorder_level }}</span></div>
+          <div class="stock-bar mt-1"><span style="width: {% widthratio p.stock_qty p.reorder_level|add:p.reorder_level|add:p.reorder_level 100 %}%; max-width: 100%; background: {% if p.stock_qty == 0 %}#f04438{% elif p.is_low_stock %}#f79009{% else %}#12b76a{% endif %}"></span></div>
+        </td>
+        <td class="text-end">{{ p.price|inr }}</td>
+        {% if user.is_admin_role %}
+        <td>
+          <form method="post" action="{% url 'dashboard:restock' p.pk %}" class="d-flex gap-1">{% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <input type="number" name="qty" class="form-control form-control-sm" value="{{ p.reorder_level|add:p.reorder_level }}" min="1" style="width: 5rem" aria-label="Quantity">
+            <button class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i>Add</button>
+          </form>
+        </td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}
+      {% include "partials/empty_state.html" with icon="bi-check2-circle" title="Stock levels look healthy" text="No parts are at or below their reorder level." %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

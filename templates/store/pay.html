@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Payment{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="fake-gateway cc-card overflow-hidden">
+    <div class="gw-head d-flex justify-content-between align-items-center">
+      <div><small class="opacity-75">Paying CarCraft Motors</small><div class="fs-3 fw-bold">{{ order.total|inr:2 }}</div></div>
+      <i class="bi bi-shield-lock fs-2 opacity-75"></i>
+    </div>
+    <form method="post" class="p-4">{% csrf_token %}
+      <div class="small text-muted mb-2 fw-semibold">Choose a payment method</div>
+      <div class="d-grid gap-2 mb-4">
+        <div class="pay-method"><input type="radio" name="method" id="pm-upi" checked><label for="pm-upi"><i class="bi bi-phone"></i>UPI<small class="ms-auto text-muted fw-normal">GPay, PhonePe, Paytm</small></label></div>
+        <div class="pay-method"><input type="radio" name="method" id="pm-card"><label for="pm-card"><i class="bi bi-credit-card-2-front"></i>Credit / Debit card</label></div>
+        <div class="pay-method"><input type="radio" name="method" id="pm-nb"><label for="pm-nb"><i class="bi bi-bank"></i>Net banking</label></div>
+      </div>
+      <button class="btn btn-primary btn-lg w-100"><i class="bi bi-lock-fill"></i>Pay {{ order.total|inr:2 }}</button>
+      <p class="text-center small text-muted mt-3 mb-0"><i class="bi bi-info-circle"></i> Demo gateway: no real money is charged.</p>
+    </form>
+  </div>
+</div>
+{% endblock %}

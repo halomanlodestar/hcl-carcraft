@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}My trade-ins{% endblock %}
+{% block content %}
+<div class="container" style="max-width: 56rem">
+  <div class="page-head d-flex justify-content-between align-items-end">
+    <div><div class="eyebrow">My account</div><h1>Trade-ins</h1></div>
+    <a href="{% url 'inventory:trade_in' %}" class="btn btn-soft btn-sm"><i class="bi bi-plus-lg"></i>New estimate</a>
+  </div>
+  {% if items %}
+  <div class="d-grid gap-3">
+    {% for t in items %}
+    <div class="cc-card p-3 p-md-4">
+      <div class="d-flex flex-wrap align-items-center gap-3">
+        {% brand_logo t.vehicle_model.make "lg" %}
+        <div class="flex-grow-1">
+          <b>{{ t.year }} {{ t.vehicle_model }}</b>
+          <div class="small text-muted">{{ t.km_driven|km }} · {{ t.get_condition_rating_display }} condition · submitted {{ t.created_at|date:"j M Y" }}</div>
+        </div>
+        {% status_badge t.status t.get_status_display %}
+      </div>
+      <div class="row g-3 mt-1">
+        <div class="col-6 col-md-3"><small class="text-muted d-block">Estimate</small><b>{{ t.estimated_value|inr }}</b></div>
+        <div class="col-6 col-md-3"><small class="text-muted d-block">Our offer</small>{% if t.offered_value %}<b class="text-success">{{ t.offered_value|inr }}</b>{% else %}<span class="text-muted"><i class="bi bi-hourglass-split"></i> Pending</span>{% endif %}</div>
+        {% if t.status == "OFFERED" %}
+        <div class="col-md-6 d-flex gap-2 justify-content-md-end align-items-center">
+          <form method="post" action="{% url 'inventory:trade_in_respond' t.pk %}" class="d-flex gap-2">{% csrf_token %}
+            <button name="decision" value="reject" class="btn btn-soft btn-sm"><i class="bi bi-x-lg"></i>Decline</button>
+            <button name="decision" value="accept" class="btn btn-primary btn-sm"><i class="bi bi-check-lg"></i>Accept offer</button>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="cc-card">{% include "partials/empty_state.html" with icon="bi-arrow-left-right" title="No trade-ins yet" text="Find out what your current car is worth in under a minute." cta_url="/inventory/trade-in/" cta_label="Get an estimate" %}</div>
+  {% endif %}
+</div>
+{% endblock %}

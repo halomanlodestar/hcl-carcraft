@@ -1,0 +1,28 @@
+{% with tint=tints|get_item:p.category.slug %}
+<div class="cc-card card-hover part-card position-relative">
+  <a href="{% url 'store:part_detail' p.sku %}" class="stretched-link" aria-label="{{ p.name }}"></a>
+  <div class="part-visual" style="--tint: {{ tint|default:'#667085' }}">
+    <i class="bi {{ p.category.icon }}"></i>
+    <span class="part-brand">{{ p.brand }}</span>
+    <span class="stock-flag">
+      {% if not p.in_stock %}<span class="badge-status badge-status-danger"><i class="bi bi-x-circle"></i>Out of stock</span>
+      {% elif p.is_low_stock %}<span class="badge-status badge-status-warning"><i class="bi bi-hourglass-split"></i>Only {{ p.stock_qty }} left</span>{% endif %}
+    </span>
+  </div>
+  <div class="p-3 d-flex flex-column flex-grow-1 gap-1">
+    <div class="small text-muted">{{ p.category.name }}</div>
+    <div class="fw-bold lh-sm" style="min-height: 2.5em">{{ p.name }}</div>
+    {% if fit_model %}<span class="fits-badge align-self-start"><i class="bi bi-check-circle-fill"></i>Fits your {{ fit_model.name }}</span>
+    {% elif p.is_universal %}<span class="fits-badge align-self-start" style="color: var(--cc-muted); background: var(--cc-surface-2)"><i class="bi bi-globe2"></i>Universal fit</span>{% endif %}
+    <div class="d-flex justify-content-between align-items-center mt-auto pt-2">
+      <span class="price" style="font-size:1.1rem">{{ p.price|inr }}</span>
+      {% if user.is_customer and p.in_stock %}
+      <form method="post" action="{% url 'store:cart_add' p.pk %}" style="position: relative; z-index: 2">{% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button class="btn btn-primary btn-icon btn-sm" aria-label="Add {{ p.name }} to cart" data-bs-toggle="tooltip" title="Add to cart"><i class="bi bi-bag-plus"></i></button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endwith %}

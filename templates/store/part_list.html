@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Parts &amp; accessories{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="page-head d-flex flex-wrap gap-3 justify-content-between align-items-end">
+    <div>
+      <div class="eyebrow">Parts store</div>
+      <h1>Parts &amp; accessories</h1>
+      <p class="text-muted mb-0">Genuine parts, delivered to your door or fitted at our service centre.</p>
+    </div>
+    <form method="get" class="input-icon search-xl flex-grow-1" style="max-width: 28rem">
+      {% if fit_model %}<input type="hidden" name="model" value="{{ fit_model.pk }}">{% endif %}
+      {% if sel.category %}<input type="hidden" name="category" value="{{ sel.category }}">{% endif %}
+      <i class="bi bi-search"></i>
+      <input class="form-control" type="search" name="q" value="{{ sel.q }}" placeholder="Search brake pads, Bosch, wiper…" aria-label="Search parts">
+    </form>
+  </div>
+
+  {# Fits-my-car finder #}
+  <div class="cc-card p-3 p-md-4 mb-4">
+    {% if fit_model %}
+    <div class="d-flex flex-wrap align-items-center gap-3">
+      <span class="kpi p-0"><span class="ico ico-green"><i class="bi bi-check2-circle"></i></span></span>
+      <div class="flex-grow-1">
+        <div class="small text-muted fw-semibold">Showing parts that fit</div>
+        <div class="d-flex align-items-center gap-2 fs-5 fw-bold">{% brand_logo fit_model.make "md" %}{{ fit_model }}</div>
+      </div>
+      <a href="?{% query_replace model='' make='' page='' %}" class="btn btn-soft btn-sm"><i class="bi bi-x-lg"></i>Change car</a>
+    </div>
+    {% else %}
+    <div class="section-title mb-3"><i class="bi bi-car-front"></i>Shop parts for your car</div>
+    {% if garage_models %}
+    <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+      <small class="text-muted fw-semibold me-1"><i class="bi bi-house-door me-1"></i>My garage:</small>
+      {% for m in garage_models %}
+      <a href="?{% query_replace model=m.pk make='' page='' %}" class="btn btn-soft btn-sm">{% brand_logo m.make "sm" %}{{ m.name }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <div class="row g-3 align-items-center">
+      <div class="col-lg-8">
+        <div class="d-flex flex-wrap gap-2 brand-toggle">
+          {% for m in makes %}
+          <a href="?{% query_replace make=m.slug model='' page='' %}" class="text-reset">
+            <label class="{% if selected_make == m %}active{% endif %}" title="{{ m.name }}" data-bs-toggle="tooltip" style="{% if selected_make == m %}color:var(--cc-accent);border-color:var(--cc-accent);background:var(--cc-accent-soft){% endif %}">{% brand_logo m "md" %}</label>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <form method="get" data-autosubmit>
+          {% if sel.category %}<input type="hidden" name="category" value="{{ sel.category }}">{% endif %}
+          <select name="model" class="form-select" {% if not selected_make %}disabled{% endif %} aria-label="Model">
+            <option value="">{% if selected_make %}Select your {{ selected_make.name }} model{% else %}Pick a brand first{% endif %}</option>
+            {% for m in make_models %}<option value="{{ m.pk }}">{{ m.name }}</option>{% endfor %}
+          </select>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="row g-4">
+    <aside class="col-lg-3">
+      <div class="cc-card p-2 filter-panel">
+        <a href="?{% query_replace category='' page='' %}" class="list-row rounded-3 border-0 py-2 {% if not sel.category %}fw-bold text-primary{% endif %}">
+          <i class="bi bi-grid"></i><span class="flex-grow-1">All categories</span>
+        </a>
+        {% for c in categories %}
+        <a href="?{% query_replace category=c.slug page='' %}" class="list-row rounded-3 border-0 py-2 {% if sel.category == c.slug %}fw-bold text-primary{% endif %}" style="{% if sel.category == c.slug %}background:var(--cc-accent-soft){% endif %}">
+          <i class="bi {{ c.icon }}" style="color: {{ tints|get_item:c.slug }}"></i><span class="flex-grow-1">{{ c.name }}</span><small class="text-muted">{{ c.n }}</small>
+        </a>
+        {% endfor %}
+      </div>
+    </aside>
+    <div class="col-lg-9">
+      <form method="get" data-autosubmit class="d-flex flex-wrap gap-2 align-items-center mb-3">
+        {% for k, v in request.GET.items %}{% if k != "sort" and k != "in_stock" and k != "page" %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}{% endfor %}
+        <span class="text-muted"><b class="text-body">{{ page.paginator.count }}</b> part{{ page.paginator.count|pluralize }}</span>
+        <label class="chip-check ms-2"><input type="checkbox" name="in_stock" value="1" {% if sel.in_stock %}checked{% endif %}><span><i class="bi bi-box-seam"></i>In stock only</span></label>
+        <div class="ms-auto d-flex align-items-center gap-2">
+          <label for="sort" class="text-muted small d-none d-sm-block"><i class="bi bi-sort-down"></i> Sort</label>
+          <select class="form-select form-select-sm" id="sort" name="sort" style="width:auto">
+            {% for k, label in sorts %}<option value="{{ k }}" {% if k == sel.sort %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+        </div>
+      </form>
+      {% if page.object_list %}
+      <div class="row g-3 row-cols-2 row-cols-md-3 row-cols-xl-4">
+        {% for p in page.object_list %}<div class="col">{% include "partials/part_card.html" %}</div>{% endfor %}
+      </div>
+      {% include "partials/pagination.html" %}
+      {% else %}
+      <div class="cc-card">{% include "partials/empty_state.html" with icon="bi-search" title="No parts found" text="Try a different search term or category." cta_url="/store/" cta_label="View all parts" %}</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

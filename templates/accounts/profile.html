@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+<div class="container" style="max-width: 46rem">
+  <div class="page-head d-flex align-items-center gap-3">
+    <span class="avatar avatar-lg">{{ user.initials }}</span>
+    <div>
+      <h1 class="mb-0">{{ user.display_name }}</h1>
+      <span class="role-chip">{{ user.get_role_display }}</span> <span class="text-muted small divider-dot">@{{ user.username }}</span>
+    </div>
+  </div>
+  <div class="cc-card p-4">
+    <div class="section-title"><i class="bi bi-person-vcard"></i>Personal details</div>
+    <form method="post">{% csrf_token %}
+      <div class="row">
+        <div class="col-sm-6">{{ form.first_name|as_crispy_field }}</div>
+        <div class="col-sm-6">{{ form.last_name|as_crispy_field }}</div>
+        <div class="col-sm-7">{{ form.email|as_crispy_field }}</div>
+        <div class="col-sm-5">{{ form.phone|as_crispy_field }}</div>
+        <div class="col-12">{{ form.city|as_crispy_field }}</div>
+        <div class="col-12">{{ form.address|as_crispy_field }}</div>
+      </div>
+      <div class="d-flex justify-content-end"><button class="btn btn-primary"><i class="bi bi-check2"></i>Save changes</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}

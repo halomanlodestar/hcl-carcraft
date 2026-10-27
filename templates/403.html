@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Access denied{% endblock %}
+{% block content %}
+<div class="container py-5" style="max-width: 32rem">
+  {% include "partials/empty_state.html" with icon="bi-shield-lock" title="You don't have access to this page" text="It's reserved for a different role. Head back to your dashboard to continue." cta_url="/dashboard/" cta_label="Go to dashboard" %}
+</div>
+{% endblock %}

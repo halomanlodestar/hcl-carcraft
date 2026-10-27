@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Sales{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="page-head d-flex justify-content-between align-items-end">
+    <div><div class="eyebrow">Sales</div><h1>Vehicle sales</h1></div>
+    {% if user.is_sales %}
+    <div class="nav nav-pills-soft">
+      <a class="nav-link {% if not request.GET.mine %}active{% endif %}" href="?">All</a>
+      <a class="nav-link {% if request.GET.mine %}active{% endif %}" href="?mine=1">Mine</a>
+    </div>
+    {% endif %}
+  </div>
+  <div class="cc-card overflow-hidden">
+    <div class="table-responsive"><table class="table table-hover">
+      <thead><tr><th>Date</th><th>Car</th><th>Buyer</th><th>Sold by</th><th class="text-end">Price</th><th></th></tr></thead>
+      <tbody>
+      {% for s in page.object_list %}
+      <tr data-href="{% url 'inventory:sale_detail' s.pk %}">
+        <td class="text-nowrap">{{ s.sold_at|date:"j M Y" }}</td>
+        <td><div class="d-flex align-items-center gap-2">{% brand_logo s.vehicle.vehicle_model.make "sm" %}<b>{{ s.vehicle.vehicle_model.name }}</b><span class="text-muted small d-none d-md-inline">{{ s.vehicle.variant }}</span></div></td>
+        <td>{{ s.customer.display_name }}</td>
+        <td>{{ s.salesperson.first_name }}</td>
+        <td class="text-end fw-semibold">{{ s.sale_price|inr }}</td>
+        <td class="text-end"><i class="bi bi-chevron-right text-muted"></i></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+  {% include "partials/pagination.html" %}
+</div>
+{% endblock %}

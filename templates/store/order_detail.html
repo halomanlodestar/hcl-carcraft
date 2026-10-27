@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Order {{ order.number }}{% endblock %}
+{% block content %}
+<div class="container" style="max-width: 56rem">
+  <div class="page-head d-flex flex-wrap justify-content-between align-items-end gap-2">
+    <div>
+      <nav aria-label="breadcrumb"><ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% if user.is_admin_role %}{% url 'store:manage_orders' %}{% else %}{% url 'store:orders' %}{% endif %}">Orders</a></li>
+        <li class="breadcrumb-item active">{{ order.number }}</li>
+      </ol></nav>
+      <h1 class="font-monospace">{{ order.number }}</h1>
+      <div class="text-muted">Placed {{ order.created_at|date:"j M Y, g:i A" }}{% if user.is_admin_role %} by {{ order.customer.display_name }}{% endif %}</div>
+    </div>
+    <div class="d-flex gap-2">
+      {% if order.status == "PENDING" and order.customer == user %}<a href="{% url 'store:pay' order.pk %}" class="btn btn-primary"><i class="bi bi-credit-card"></i>Pay now</a>{% endif %}
+      {% if order.status != "PENDING" and order.status != "CANCELLED" %}<a href="{% url 'store:order_invoice' order.pk %}" target="_blank" class="btn btn-soft"><i class="bi bi-file-earmark-pdf"></i>Invoice</a>{% endif %}
+      {% if user.is_admin_role and order.status == "PAID" or user.is_admin_role and order.status == "SHIPPED" %}
+      <form method="post" action="{% url 'store:order_advance' order.pk %}">{% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.path }}">
+        <button class="btn btn-primary"><i class="bi {% if order.status == 'PAID' %}bi-truck{% else %}bi-box2-heart{% endif %}"></i>Mark {% if order.status == "PAID" %}shipped{% else %}delivered{% endif %}</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if order.status == "CANCELLED" %}
+  <div class="alert alert-danger d-flex align-items-center gap-2"><i class="bi bi-x-octagon"></i>This order was cancelled. Any payment will be refunded within 5–7 days.</div>
+  {% else %}
+  <div class="cc-card p-4 mb-4">
+    <div class="stepper">
+      <div class="progress-line" style="width: {{ progress }}%"></div>
+      {% for code, label, icon, at in steps %}
+      <div class="step {% if forloop.counter < current %}done{% elif forloop.counter == current %}{% if code == 'DELIVERED' %}done{% else %}current{% endif %}{% endif %}">
+        <div class="bubble"><i class="bi {% if forloop.counter < current or code == 'DELIVERED' and forloop.counter == current %}bi-check-lg{% else %}{{ icon }}{% endif %}"></i></div>
+        <div class="label">{{ label }}</div>
+        {% if at %}<small class="text-muted">{{ at|date:"j M" }}</small>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% if order.status == "PENDING" %}<p class="text-center text-muted small mb-0 mt-2"><i class="bi bi-hourglass-split"></i> Waiting for payment</p>{% endif %}
+  </div>
+  {% endif %}
+
+  <div class="row g-4">
+    <div class="col-md-7">
+      <div class="cc-card">
+        <div class="card-header"><i class="bi bi-bag me-2 text-primary"></i>Items</div>
+        {% for item in order.items.all %}
+        <div class="list-row">
+          <span class="part-visual rounded-3 border-0" style="--tint: {{ tints|get_item:item.part.category.slug }}; width: 3rem; aspect-ratio: 1; font-size: 1.2rem"><i class="bi {{ item.part.category.icon }}"></i></span>
+          <div class="flex-grow-1 min-w-0"><a href="{% url 'store:part_detail' item.part.sku %}" class="text-reset fw-semibold d-block text-truncate">{{ item.part.name }}</a><small class="text-muted">{{ item.quantity }} × {{ item.unit_price|inr }}</small></div>
+          <b>{{ item.line_total|inr }}</b>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="col-md-5">
+      <div class="cc-card p-4 mb-3">
+        <div class="summary-row"><span class="text-muted">Subtotal</span><span>{{ order.subtotal|inr:2 }}</span></div>
+        {% if order.discount %}<div class="summary-row text-success"><span><i class="bi bi-ticket-perforated"></i> {{ order.coupon.code|default:"Discount" }}</span><span>−{{ order.discount|inr:2 }}</span></div>{% endif %}
+        <div class="summary-row"><span class="text-muted">GST</span><span>{{ order.tax|inr:2 }}</span></div>
+        <div class="summary-row total"><span>Total</span><span>{{ order.total|inr:2 }}</span></div>
+      </div>
+      <div class="cc-card p-4">
+        <div class="section-title mb-2"><i class="bi bi-geo-alt"></i>Delivering to</div>
+        <p class="small text-muted mb-0">{{ order.shipping_address|linebreaksbr }}</p>
+      </div>
+      {% if order.status == "PENDING" or order.status == "PAID" %}
+      <form method="post" action="{% url 'store:order_cancel' order.pk %}" class="mt-3">{% csrf_token %}
+        <button class="btn btn-link text-danger px-0" data-confirm="Cancel this order?"><i class="bi bi-x-circle"></i>Cancel order</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="page-head d-flex flex-wrap justify-content-between align-items-end gap-2">
+    <div><div class="eyebrow">{% now "l, j F" %}</div><h1>Good to see you, {{ user.first_name|default:user.username }}</h1><p class="text-muted mb-0">Here's how the dealership is doing.</p></div>
+    <a href="{% url 'dashboard:analytics' %}" class="btn btn-soft"><i class="bi bi-bar-chart-line"></i>Full analytics</a>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3"><div class="cc-card kpi"><span class="ico ico-red"><i class="bi bi-currency-rupee"></i></span><div><div class="kpi-label">Revenue this month</div><div class="kpi-value">{{ kpi.revenue_month|lakh }}</div>
+      {% if kpi.revenue_change is not None %}<div class="kpi-sub {% if kpi.revenue_change >= 0 %}text-success{% else %}text-danger{% endif %}"><i class="bi {% if kpi.revenue_change >= 0 %}bi-arrow-up-right{% else %}bi-arrow-down-right{% endif %}"></i> {{ kpi.revenue_change|floatformat:0 }}% vs last month</div>{% endif %}</div></div></div>
+    <div class="col-sm-6 col-xl-3"><a href="{% url 'inventory:list' %}" class="cc-card card-hover kpi text-reset"><span class="ico ico-blue"><i class="bi bi-car-front"></i></span><div><div class="kpi-label">Cars in stock</div><div class="kpi-value">{{ kpi.in_stock }}</div><div class="kpi-sub">worth {{ kpi.stock_value|lakh }}</div></div></a></div>
+    <div class="col-sm-6 col-xl-3"><a href="{% url 'service:manage' %}" class="cc-card card-hover kpi text-reset"><span class="ico ico-green"><i class="bi bi-wrench-adjustable"></i></span><div><div class="kpi-label">Open service jobs</div><div class="kpi-value">{{ kpi.open_jobs }}</div><div class="kpi-sub">{% if kpi.unassigned_jobs %}<span class="text-warning-emphasis"><i class="bi bi-exclamation-circle"></i> {{ kpi.unassigned_jobs }} unassigned</span>{% else %}all assigned{% endif %}</div></div></a></div>
+    <div class="col-sm-6 col-xl-3"><a href="{% url 'dashboard:low_stock' %}" class="cc-card card-hover kpi text-reset"><span class="ico ico-amber"><i class="bi bi-box-seam"></i></span><div><div class="kpi-label">Low-stock parts</div><div class="kpi-value">{{ kpi.low_stock }}</div><div class="kpi-sub">{{ kpi.orders_to_ship }} order{{ kpi.orders_to_ship|pluralize }} to ship</div></div></a></div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="cc-card p-4 h-100">
+        <div class="d-flex justify-content-between align-items-center mb-3"><div class="section-title mb-0"><i class="bi bi-graph-up-arrow"></i>Revenue, last 6 months</div></div>
+        <div class="chart-box"><canvas id="revChart" aria-label="Revenue by month and stream"></canvas></div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="cc-card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center"><span><i class="bi bi-exclamation-triangle me-2 text-warning"></i>Low stock</span><a href="{% url 'dashboard:low_stock' %}" class="small fw-semibold">View all <i class="bi bi-chevron-right"></i></a></div>
+        {% for p in low_stock %}
+        <div class="list-row">
+          <i class="bi {{ p.category.icon }} text-muted"></i>
+          <div class="flex-grow-1 min-w-0">
+            <div class="small fw-semibold text-truncate">{{ p.name }}</div>
+            <div class="stock-bar mt-1"><span style="width: {% widthratio p.stock_qty p.reorder_level|add:p.reorder_level 100 %}%; background: {% if p.stock_qty == 0 %}#f04438{% else %}#f79009{% endif %}"></span></div>
+          </div>
+          <b class="small {% if p.stock_qty == 0 %}text-danger{% endif %}">{{ p.stock_qty }}</b>
+        </div>
+        {% empty %}
+        <div class="text-center text-muted py-5"><i class="bi bi-check2-circle fs-3 d-block mb-1 text-success"></i>Stock levels are healthy</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="cc-card h-100">
+        <div class="card-header d-flex justify-content-between"><span><i class="bi bi-person-exclamation me-2 text-primary"></i>Needs a technician</span><a href="{% url 'service:manage' %}?tab=unassigned" class="small fw-semibold">All <i class="bi bi-chevron-right"></i></a></div>
+        {% for j in unassigned %}
+        <a href="{% url 'service:job_detail' j.pk %}" class="list-row">
+          {% brand_logo j.customer_vehicle.vehicle_model.make "sm" %}
+          <div class="flex-grow-1 lh-sm"><b class="small">{{ j.customer_vehicle.vehicle_model.name }}</b><div class="small text-muted">{{ j.service_type.name }} · {{ j.scheduled_date|date:"j M" }}</div></div>
+          <i class="bi bi-chevron-right chev"></i>
+        </a>
+        {% empty %}
+        <div class="text-center text-muted py-5"><i class="bi bi-people fs-3 d-block mb-1"></i>Every job has a technician</div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="cc-card h-100">
+        <div class="card-header d-flex justify-content-between"><span><i class="bi bi-truck me-2 text-primary"></i>Orders to ship</span><a href="{% url 'store:manage_orders' %}" class="small fw-semibold">All <i class="bi bi-chevron-right"></i></a></div>
+        {% for o in to_ship %}
+        <a href="{% url 'store:order_detail' o.pk %}" class="list-row">
+          <i class="bi bi-box-seam text-muted"></i>
+          <div class="flex-grow-1 lh-sm"><b class="small font-monospace">{{ o.number }}</b><div class="small text-muted">{{ o.customer.display_name }}</div></div>
+          <b class="small">{{ o.total|inr }}</b>
+        </a>
+        {% empty %}
+        <div class="text-center text-muted py-5"><i class="bi bi-check2-all fs-3 d-block mb-1"></i>Nothing waiting to ship</div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="cc-card h-100">
+        <div class="card-header d-flex justify-content-between"><span><i class="bi bi-trophy me-2 text-primary"></i>Latest sales</span><a href="{% url 'inventory:sales' %}" class="small fw-semibold">All <i class="bi bi-chevron-right"></i></a></div>
+        {% for s in recent_sales %}
+        <a href="{% url 'inventory:sale_detail' s.pk %}" class="list-row">
+          {% brand_logo s.vehicle.vehicle_model.make "sm" %}
+          <div class="flex-grow-1 lh-sm min-w-0"><b class="small">{{ s.vehicle.vehicle_model.name }}</b><div class="small text-muted text-truncate">{{ s.customer.display_name }} · {{ s.sold_at|date:"j M" }}</div></div>
+          <b class="small">{{ s.sale_price|lakh }}</b>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{{ chart|json_script:"chart-data" }}
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="{% static 'js/charts.js' %}"></script>
+<script>
+  var d = JSON.parse(document.getElementById("chart-data").textContent);
+  CC.chart("revChart", function (t) {
+    return {
+      type: "bar",
+      data: { labels: d.labels, datasets: [
+        { label: "Vehicle sales", data: d.cars, backgroundColor: CC.palette.red, borderRadius: 6, maxBarThickness: 38, yAxisID: "y", order: 2 },
+        { type: "line", label: "Parts (right axis)", data: d.parts, borderColor: CC.palette.blue, backgroundColor: CC.palette.blue, tension: .35, pointRadius: 3, yAxisID: "y2", order: 1 },
+        { type: "line", label: "Service (right axis)", data: d.service, borderColor: CC.palette.green, backgroundColor: CC.palette.green, tension: .35, pointRadius: 3, yAxisID: "y2", order: 1 }
+      ] },
+      options: { scales: Object.assign(CC.moneyAxis(t), { y2: { position: "right", border: { display: false }, grid: { display: false }, ticks: { callback: function (v) { return CC.compactINR(v); }, maxTicksLimit: 6 } } }),
+        plugins: { legend: { position: "top", align: "end" },
+        tooltip: { callbacks: { label: function (c) { return " " + c.dataset.label + ": " + CC.inr(c.raw); } } } } }
+    };
+  });
+</script>
+{% endblock %}

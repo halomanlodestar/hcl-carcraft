@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Analytics{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="page-head d-flex flex-wrap justify-content-between align-items-end gap-2">
+    <div><div class="eyebrow">Last 12 months</div><h1>Analytics</h1><p class="text-muted mb-0">Sales, parts and service performance across the dealership.</p></div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-xl-3"><div class="cc-card kpi"><span class="ico ico-red"><i class="bi bi-cash-stack"></i></span><div><div class="kpi-label">12-month revenue</div><div class="kpi-value">{{ total_12m|lakh }}</div><div class="kpi-sub">best month: {{ best_month|date:"M Y" }}</div></div></div></div>
+    <div class="col-6 col-xl-3"><div class="cc-card kpi"><span class="ico ico-blue"><i class="bi bi-bag-check"></i></span><div><div class="kpi-label">Cars sold this month</div><div class="kpi-value">{{ kpi.cars_sold_month }}</div><div class="kpi-sub">{{ kpi.in_stock }} still in stock</div></div></div></div>
+    <div class="col-6 col-xl-3"><div class="cc-card kpi"><span class="ico ico-violet"><i class="bi bi-hourglass-split"></i></span><div><div class="kpi-label">Avg. days to sell</div><div class="kpi-value">{{ kpi.avg_days_to_sell|default:"—" }}</div><div class="kpi-sub">from arrival to sale</div></div></div></div>
+    <div class="col-6 col-xl-3"><div class="cc-card kpi"><span class="ico ico-green"><i class="bi bi-wrench-adjustable"></i></span><div><div class="kpi-label">Open service jobs</div><div class="kpi-value">{{ kpi.open_jobs }}</div><div class="kpi-sub">{{ kpi.pending_test_drives }} test drive{{ kpi.pending_test_drives|pluralize }} pending</div></div></div></div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="cc-card p-4 h-100">
+        <div class="section-title"><i class="bi bi-car-front"></i>Vehicle sales revenue</div>
+        <div class="chart-box"><canvas id="revenue" aria-label="Monthly vehicle sales revenue"></canvas></div>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="cc-card p-4 h-100">
+        <div class="section-title"><i class="bi bi-trophy"></i>Best-selling models</div>
+        <div class="chart-box"><canvas id="topModels" aria-label="Top models by units sold"></canvas></div>
+      </div>
+    </div>
+    {% if not sales_only %}
+    <div class="col-12">
+      <div class="cc-card p-4">
+        <div class="section-title"><i class="bi bi-gear-wide-connected"></i>Parts &amp; service revenue</div>
+        <div class="chart-box"><canvas id="aftersales" aria-label="Monthly parts and service revenue"></canvas></div>
+      </div>
+    </div>
+    {% endif %}
+    <div class="col-lg-6">
+      <div class="cc-card p-4 h-100">
+        <div class="section-title"><i class="bi bi-people"></i>Revenue by sales executive</div>
+        <div class="chart-box sm"><canvas id="people" aria-label="Revenue by salesperson"></canvas></div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="cc-card p-4 h-100">
+        <div class="section-title"><i class="bi bi-fuel-pump"></i>Cars sold by fuel type</div>
+        <div class="chart-box sm"><canvas id="fuel" aria-label="Sales by fuel type"></canvas></div>
+      </div>
+    </div>
+    {% if not sales_only %}
+    <div class="col-lg-6">
+      <div class="cc-card p-4 h-100">
+        <div class="section-title"><i class="bi bi-wrench-adjustable"></i>Open service jobs by stage</div>
+        <div class="chart-box sm"><canvas id="jobs" aria-label="Open service jobs by stage"></canvas></div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="cc-card p-4 h-100">
+        <div class="section-title"><i class="bi bi-gear-wide-connected"></i>Top-selling parts</div>
+        <div class="chart-box sm"><canvas id="parts" aria-label="Top parts by units sold"></canvas></div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{{ data|json_script:"chart-data" }}
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="{% static 'js/charts.js' %}"></script>
+<script>
+  var d = JSON.parse(document.getElementById("chart-data").textContent);
+  var moneyTip = { callbacks: { label: function (c) { return " " + (c.dataset.label ? c.dataset.label + ": " : "") + CC.inr(c.raw); } } };
+
+  CC.chart("revenue", function (t) {
+    return { type: "bar", data: { labels: d.months, datasets: [
+      { label: "Vehicle sales", data: d.revenue.cars, backgroundColor: CC.palette.red, borderRadius: 6, maxBarThickness: 34 }
+    ] }, options: { scales: CC.moneyAxis(t), plugins: { legend: { display: false }, tooltip: moneyTip } } };
+  });
+
+  CC.chart("aftersales", function (t) {
+    return { type: "bar", data: { labels: d.months, datasets: [
+      { label: "Parts store", data: d.revenue.parts, backgroundColor: CC.palette.blue, borderRadius: 4, maxBarThickness: 34 },
+      { label: "Service", data: d.revenue.service, backgroundColor: CC.palette.green, borderRadius: 4, maxBarThickness: 34 }
+    ] }, options: { scales: CC.moneyAxis(t, true), plugins: { legend: { position: "top", align: "end" }, tooltip: moneyTip } } };
+  });
+
+  CC.chart("topModels", function (t) {
+    return { type: "bar", data: { labels: d.top_models.labels, datasets: [{ label: "Units sold", data: d.top_models.values, backgroundColor: CC.palette.red, borderRadius: 6, maxBarThickness: 26 }] },
+      options: { indexAxis: "y", plugins: { legend: { display: false } },
+        scales: { x: { grid: { color: t.grid }, border: { display: false }, ticks: { precision: 0 } }, y: { grid: { display: false }, border: { display: false } } } } };
+  });
+
+  CC.chart("people", function (t) {
+    return { type: "bar", data: { labels: d.people.labels, datasets: [{ data: d.people.values, backgroundColor: CC.series, borderRadius: 6, maxBarThickness: 46 }] },
+      options: { scales: CC.moneyAxis(t), plugins: { legend: { display: false }, tooltip: moneyTip } } };
+  });
+
+  CC.chart("fuel", function (t) {
+    return { type: "doughnut", data: { labels: d.fuel.labels, datasets: [{ data: d.fuel.values, backgroundColor: [CC.palette.amber, CC.palette.slate, CC.palette.cyan, CC.palette.green, CC.palette.violet], borderColor: t.surface, borderWidth: 3 }] },
+      options: { cutout: "62%", plugins: { legend: { position: "right" } } } };
+  });
+
+  CC.chart("jobs", function (t) {
+    return { type: "bar", data: { labels: d.jobs.labels, datasets: [{ data: d.jobs.values, backgroundColor: [CC.palette.slate, CC.palette.cyan, CC.palette.red, CC.palette.green], borderRadius: 6, maxBarThickness: 48 }] },
+      options: { plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, border: { display: false } }, y: { grid: { color: t.grid }, border: { display: false }, ticks: { precision: 0 } } } } };
+  });
+
+  CC.chart("parts", function (t) {
+    return { type: "bar", data: { labels: d.parts.labels, datasets: [{ label: "Units", data: d.parts.values, backgroundColor: CC.palette.blue, borderRadius: 6, maxBarThickness: 22 }] },
+      options: { indexAxis: "y", plugins: { legend: { display: false } }, scales: { x: { grid: { color: t.grid }, border: { display: false }, ticks: { precision: 0 } }, y: { grid: { display: false }, border: { display: false }, ticks: { callback: function (v) { var l = this.getLabelForValue(v); return l.length > 20 ? l.slice(0, 19) + "…" : l; } } } } } };
+  });
+</script>
+{% endblock %}

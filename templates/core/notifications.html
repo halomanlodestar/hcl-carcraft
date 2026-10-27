@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Notifications{% endblock %}
+{% block content %}
+<div class="container" style="max-width: 46rem">
+  <div class="page-head d-flex justify-content-between align-items-end">
+    <div><div class="eyebrow">Inbox</div><h1>Notifications</h1></div>
+    {% if unread_notifications %}
+    <form method="post" action="{% url 'core:notifications_read' %}">{% csrf_token %}<button class="btn btn-soft btn-sm"><i class="bi bi-check2-all"></i>Mark all read</button></form>
+    {% endif %}
+  </div>
+  <div class="cc-card">
+    {% for n in page.object_list %}
+    <a href="{% url 'core:notification_open' n.pk %}" class="list-row {% if not n.is_read %}notif-item unread{% endif %}">
+      <span class="notif-icon {{ n.kind }}"><i class="bi {{ n.display_icon }}"></i></span>
+      <div class="flex-grow-1"><div class="{% if not n.is_read %}fw-semibold{% endif %}">{{ n.message }}</div><small class="text-muted">{{ n.created_at|timesince }} ago</small></div>
+      {% if not n.is_read %}<span class="rounded-circle" style="width:.55rem;height:.55rem;background:var(--cc-accent)" aria-label="Unread"></span>{% endif %}
+      <i class="bi bi-chevron-right chev ms-2"></i>
+    </a>
+    {% empty %}
+    {% include "partials/empty_state.html" with icon="bi-bell-slash" title="No notifications" text="Updates about your orders, test drives and service will show up here." %}
+    {% endfor %}
+  </div>
+  {% include "partials/pagination.html" %}
+</div>
+{% endblock %}

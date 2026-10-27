@@ -1,0 +1,98 @@
+{# Side-profile car silhouettes, one symbol per body type. Body uses currentColor so each car renders in its own paint. #}
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="cc-shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity=".38"/>
+      <stop offset=".45" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity=".28"/>
+    </linearGradient>
+    <linearGradient id="cc-glass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3b4a63"/>
+      <stop offset=".55" stop-color="#121a2a"/>
+      <stop offset="1" stop-color="#26334a"/>
+    </linearGradient>
+    <radialGradient id="cc-rim" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#e5e7eb"/>
+      <stop offset=".7" stop-color="#9ca3af"/>
+      <stop offset="1" stop-color="#6b7280"/>
+    </radialGradient>
+    <g id="cc-wheel">
+      <circle r="20" fill="#111827"/>
+      <circle r="17" fill="#1f2937"/>
+      <circle r="11.5" fill="url(#cc-rim)"/>
+      <g stroke="#4b5563" stroke-width="2.2" stroke-linecap="round">
+        <line x1="0" y1="-10" x2="0" y2="10"/><line x1="-8.7" y1="-5" x2="8.7" y2="5"/><line x1="-8.7" y1="5" x2="8.7" y2="-5"/>
+      </g>
+      <circle r="3.6" fill="#374151"/>
+    </g>
+  </defs>
+
+  <symbol id="car-SEDAN" viewBox="0 0 320 140">
+    <ellipse cx="160" cy="128" rx="138" ry="6" fill="#000" opacity=".14"/>
+    <path id="b-sedan" d="M18,98 L18,84 Q18,74 28,72 L72,67 Q96,46 122,40 L188,38 Q212,40 238,62 L288,69 Q302,72 304,84 L304,100 Q304,106 298,106 L264,106 A24,24 0 0 0 216,106 L104,106 A24,24 0 0 0 56,106 L24,106 Q18,106 18,98 Z" fill="currentColor" stroke="rgba(0,0,0,.22)" stroke-width="1.2"/>
+    <path d="M18,98 L18,84 Q18,74 28,72 L72,67 Q96,46 122,40 L188,38 Q212,40 238,62 L288,69 Q302,72 304,84 L304,100 Q304,106 298,106 L264,106 A24,24 0 0 0 216,106 L104,106 A24,24 0 0 0 56,106 L24,106 Q18,106 18,98 Z" fill="url(#cc-shade)"/>
+    <path d="M100,65 Q110,50 124,46 L160,44.5 L160,65 Z" fill="url(#cc-glass)"/>
+    <path d="M166,44.5 L188,44 Q205,46 224,64 L166,65 Z" fill="url(#cc-glass)"/>
+    <path d="M30,84 L296,86" stroke="#fff" stroke-opacity=".28" stroke-width="1.5" fill="none"/>
+    <rect x="292" y="76" width="11" height="6" rx="3" fill="#fef3c7"/>
+    <rect x="18" y="77" width="7" height="6" rx="2" fill="#ef4444"/>
+    <use href="#cc-wheel" x="80" y="108"/><use href="#cc-wheel" x="240" y="108"/>
+  </symbol>
+
+  <symbol id="car-HATCHBACK" viewBox="0 0 320 140">
+    <ellipse cx="160" cy="128" rx="132" ry="6" fill="#000" opacity=".14"/>
+    <path d="M26,98 L26,74 Q26,60 38,50 L60,38 Q66,35 76,35 L178,36 Q198,38 224,60 L280,68 Q294,71 296,84 L296,100 Q296,106 290,106 L260,106 A24,24 0 0 0 212,106 L106,106 A24,24 0 0 0 58,106 L32,106 Q26,106 26,98 Z" fill="currentColor" stroke="rgba(0,0,0,.22)" stroke-width="1.2"/>
+    <path d="M26,98 L26,74 Q26,60 38,50 L60,38 Q66,35 76,35 L178,36 Q198,38 224,60 L280,68 Q294,71 296,84 L296,100 Q296,106 290,106 L260,106 A24,24 0 0 0 212,106 L106,106 A24,24 0 0 0 58,106 L32,106 Q26,106 26,98 Z" fill="url(#cc-shade)"/>
+    <path d="M44,60 L64,45 Q68,43 76,43 L118,43 L118,62 L44,62 Z" fill="url(#cc-glass)"/>
+    <path d="M124,43 L170,43 L170,62 L124,62 Z" fill="url(#cc-glass)"/>
+    <path d="M176,43 Q194,45 214,62 L176,62 Z" fill="url(#cc-glass)"/>
+    <path d="M36,84 L288,86" stroke="#fff" stroke-opacity=".28" stroke-width="1.5" fill="none"/>
+    <rect x="285" y="75" width="10" height="6" rx="3" fill="#fef3c7"/>
+    <rect x="26" y="66" width="6" height="10" rx="2" fill="#ef4444"/>
+    <use href="#cc-wheel" x="82" y="108"/><use href="#cc-wheel" x="236" y="108"/>
+  </symbol>
+
+  <symbol id="car-SUV" viewBox="0 0 320 140">
+    <ellipse cx="160" cy="128" rx="140" ry="6" fill="#000" opacity=".14"/>
+    <path d="M16,96 L16,62 Q16,54 24,52 L42,34 Q46,30 54,30 L198,30 Q208,30 216,36 L242,57 L290,63 Q304,65 306,78 L306,98 Q306,104 300,104 L268,104 A27,27 0 0 0 214,104 L108,104 A27,27 0 0 0 54,104 L22,104 Q16,104 16,96 Z" fill="currentColor" stroke="rgba(0,0,0,.22)" stroke-width="1.2"/>
+    <path d="M16,96 L16,62 Q16,54 24,52 L42,34 Q46,30 54,30 L198,30 Q208,30 216,36 L242,57 L290,63 Q304,65 306,78 L306,98 Q306,104 300,104 L268,104 A27,27 0 0 0 214,104 L108,104 A27,27 0 0 0 54,104 L22,104 Q16,104 16,96 Z" fill="url(#cc-shade)"/>
+    <path d="M34,55 L50,38 L108,38 L108,56 Z" fill="url(#cc-glass)"/>
+    <path d="M114,38 L160,38 L160,56 L114,56 Z" fill="url(#cc-glass)"/>
+    <path d="M166,38 L198,38 Q204,38 210,42 L228,56 L166,56 Z" fill="url(#cc-glass)"/>
+    <path d="M44,26 L190,26" stroke="#4b5563" stroke-width="3" stroke-linecap="round"/>
+    <path d="M24,80 L298,80" stroke="#fff" stroke-opacity=".28" stroke-width="1.5" fill="none"/>
+    <path d="M16,96 L54,96 M108,96 L214,96 M268,96 L306,96" stroke="#000" stroke-opacity=".28" stroke-width="7"/>
+    <rect x="292" y="68" width="13" height="7" rx="3" fill="#fef3c7"/>
+    <rect x="16" y="60" width="7" height="12" rx="2" fill="#ef4444"/>
+    <use href="#cc-wheel" x="81" y="106" transform="translate(81 106) scale(1.08) translate(-81 -106)"/>
+    <use href="#cc-wheel" x="241" y="106" transform="translate(241 106) scale(1.08) translate(-241 -106)"/>
+  </symbol>
+
+  <symbol id="car-MUV" viewBox="0 0 320 140">
+    <ellipse cx="160" cy="128" rx="140" ry="6" fill="#000" opacity=".14"/>
+    <path d="M16,98 L16,60 Q16,46 28,42 L48,34 Q52,32 60,32 L200,32 Q210,33 218,40 L246,60 L292,66 Q304,68 306,80 L306,98 Q306,104 300,104 L266,104 A25,25 0 0 0 216,104 L106,104 A25,25 0 0 0 56,104 L22,104 Q16,104 16,98 Z" fill="currentColor" stroke="rgba(0,0,0,.22)" stroke-width="1.2"/>
+    <path d="M16,98 L16,60 Q16,46 28,42 L48,34 Q52,32 60,32 L200,32 Q210,33 218,40 L246,60 L292,66 Q304,68 306,80 L306,98 Q306,104 300,104 L266,104 A25,25 0 0 0 216,104 L106,104 A25,25 0 0 0 56,104 L22,104 Q16,104 16,98 Z" fill="url(#cc-shade)"/>
+    <path d="M28,57 Q30,46 40,43 L56,39 L94,39 L94,57 Z" fill="url(#cc-glass)"/>
+    <path d="M100,39 L150,39 L150,57 L100,57 Z" fill="url(#cc-glass)"/>
+    <path d="M156,39 L200,39 Q207,39 212,44 L230,57 L156,57 Z" fill="url(#cc-glass)"/>
+    <path d="M24,82 L298,84" stroke="#fff" stroke-opacity=".28" stroke-width="1.5" fill="none"/>
+    <rect x="292" y="72" width="13" height="6" rx="3" fill="#fef3c7"/>
+    <rect x="16" y="62" width="7" height="12" rx="2" fill="#ef4444"/>
+    <use href="#cc-wheel" x="81" y="106"/><use href="#cc-wheel" x="241" y="106"/>
+  </symbol>
+
+  <symbol id="car-PICKUP" viewBox="0 0 320 140">
+    <ellipse cx="160" cy="128" rx="142" ry="6" fill="#000" opacity=".14"/>
+    <path d="M14,96 L14,62 L124,62 L124,38 Q124,30 132,30 L198,30 Q208,30 216,38 L240,58 L290,64 Q304,66 306,79 L306,96 Q306,104 298,104 L268,104 A27,27 0 0 0 214,104 L108,104 A27,27 0 0 0 54,104 L22,104 Q14,104 14,96 Z" fill="currentColor" stroke="rgba(0,0,0,.22)" stroke-width="1.2"/>
+    <path d="M14,96 L14,62 L124,62 L124,38 Q124,30 132,30 L198,30 Q208,30 216,38 L240,58 L290,64 Q304,66 306,79 L306,96 Q306,104 298,104 L268,104 A27,27 0 0 0 214,104 L108,104 A27,27 0 0 0 54,104 L22,104 Q14,104 14,96 Z" fill="url(#cc-shade)"/>
+    <path d="M132,38 L168,38 L168,57 L132,57 Z" fill="url(#cc-glass)"/>
+    <path d="M174,38 L200,38 Q206,38 211,43 L227,57 L174,57 Z" fill="url(#cc-glass)"/>
+    <path d="M14,62 L124,62" stroke="#000" stroke-opacity=".3" stroke-width="2.5"/>
+    <path d="M22,80 L298,80" stroke="#fff" stroke-opacity=".28" stroke-width="1.5" fill="none"/>
+    <path d="M14,96 L54,96 M108,96 L214,96 M268,96 L306,96" stroke="#000" stroke-opacity=".28" stroke-width="7"/>
+    <rect x="292" y="70" width="13" height="7" rx="3" fill="#fef3c7"/>
+    <rect x="14" y="66" width="6" height="12" rx="2" fill="#ef4444"/>
+    <use href="#cc-wheel" x="81" y="106" transform="translate(81 106) scale(1.08) translate(-81 -106)"/>
+    <use href="#cc-wheel" x="241" y="106" transform="translate(241 106) scale(1.08) translate(-241 -106)"/>
+  </symbol>
+</svg>

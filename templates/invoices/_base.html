@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @page { size: A4; margin: 1.6cm 1.6cm 2cm 1.6cm; @frame footer { -pdf-frame-content: footer; bottom: .8cm; margin-left: 1.6cm; margin-right: 1.6cm; height: 1cm; } }
+  body { font-family: Helvetica, Arial, sans-serif; font-size: 10pt; color: #1d2939; }
+  .brand { font-size: 20pt; font-weight: bold; color: #0f1729; }
+  .brand span { color: #e0313b; }
+  .muted { color: #667085; }
+  .title { font-size: 16pt; font-weight: bold; color: #e0313b; text-align: right; }
+  table { width: 100%; }
+  .head td { vertical-align: top; }
+  .box { background-color: #f5f6f8; padding: 8pt; }
+  .items th { background-color: #0f1729; color: #ffffff; padding: 6pt; text-align: left; font-size: 9pt; }
+  .items td { padding: 6pt; border-bottom: 0.5pt solid #e4e7ec; }
+  .r { text-align: right; }
+  .totals td { padding: 4pt 6pt; }
+  .grand td { font-size: 12pt; font-weight: bold; border-top: 1pt solid #0f1729; padding-top: 6pt; }
+  .label { font-size: 8pt; color: #667085; text-transform: uppercase; }
+  #footer { font-size: 8pt; color: #98a2b3; text-align: center; }
+</style>
+</head>
+<body>
+<table class="head">
+  <tr>
+    <td style="width:55%">
+      <div class="brand">Car<span>Craft</span> Motors</div>
+      <div class="muted">Baner Road, Pune 411045 · +91 20 4000 1234<br>GSTIN 27AACCC1234F1Z5 · hello@carcraft.in</div>
+    </td>
+    <td style="width:45%"><div class="title">{% block doc_title %}{% endblock %}</div><div class="r muted">{% block doc_meta %}{% endblock %}</div></td>
+  </tr>
+</table>
+<br>
+{% block body %}{% endblock %}
+<div id="footer">Thank you for choosing CarCraft · This is a computer-generated document and does not need a signature.</div>
+</body>
+</html>

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Book a service{% endblock %}
+{% block content %}
+<div class="container" style="max-width: 56rem">
+  <div class="page-head">
+    <div class="eyebrow">Service centre</div>
+    <h1>Book a service</h1>
+    <p class="text-muted mb-0">Pick your car, the service you need and a day that suits you.</p>
+  </div>
+  <form method="post" class="d-grid gap-4">{% csrf_token %}
+    <div class="cc-card p-4">
+      <div class="section-title"><i class="bi bi-car-front"></i>1. Which car?</div>
+      <div class="row g-3">
+        {% for car in cars %}
+        <div class="col-sm-6 choice-card">
+          <input type="radio" name="car" id="car{{ car.pk }}" value="{{ car.pk }}" {% if selected_car == car.pk|stringformat:"d" %}checked{% endif %}>
+          <label for="car{{ car.pk }}">
+            <span class="car-stage car-thumb" style="--car: {{ car.color_hex }}; width: 5.5rem">{% car_art car.vehicle_model.body_type car.color_hex "sm" %}</span>
+            <span class="lh-sm"><span class="d-flex align-items-center gap-1 fw-bold">{% brand_logo car.vehicle_model.make "sm" %}{{ car.vehicle_model.name }}</span><small class="text-muted font-monospace">{{ car.reg_number }}</small>
+            {% if car.is_service_due %}<span class="due-pill mt-1" style="font-size:.68rem"><i class="bi bi-exclamation-triangle-fill"></i>Due</span>{% endif %}</span>
+          </label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="cc-card p-4">
+      <div class="section-title"><i class="bi bi-tools"></i>2. What does it need?</div>
+      <div class="row g-3">
+        {% for t in types %}
+        <div class="col-sm-6 choice-card">
+          <input type="radio" name="service_type" id="st{{ t.pk }}" value="{{ t.pk }}" {% if forloop.first %}checked{% endif %}>
+          <label for="st{{ t.pk }}">
+            <span class="ico"><i class="bi {{ t.icon }}"></i></span>
+            <span class="flex-grow-1 lh-sm"><b class="d-block">{{ t.name }}</b><small class="text-muted">{{ t.description }}</small></span>
+            <span class="text-end lh-sm"><b class="d-block">{{ t.labour_charge|inr }}</b><small class="text-muted"><i class="bi bi-clock"></i> {{ t.est_hours|floatformat }}h</small></span>
+          </label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="cc-card p-4">
+      <div class="section-title"><i class="bi bi-calendar3"></i>3. When should we expect you?</div>
+      <div class="slot-grid mb-4" style="grid-template-columns: repeat(auto-fill, minmax(5rem, 1fr))">
+        {% for d in days %}
+        <span><input type="radio" name="date" id="d{{ forloop.counter }}" value="{{ d|date:'Y-m-d' }}" {% if forloop.first %}checked{% endif %}>
+          <label for="d{{ forloop.counter }}"><small class="d-block opacity-75">{{ d|date:"D" }}</small><span class="fs-5">{{ d|date:"j" }}</span><small class="d-block opacity-75">{{ d|date:"M" }}</small></label></span>
+        {% endfor %}
+      </div>
+      <label class="form-label" for="complaint">Describe any issues <small class="text-muted fw-normal">(optional)</small></label>
+      <textarea name="complaint" id="complaint" class="form-control" rows="3" placeholder="e.g. Squeaking noise when braking, AC not cooling enough"></textarea>
+      <div class="small text-muted mt-2"><i class="bi bi-info-circle"></i> Drop-off between 9:30 AM and 11 AM. Parts are billed separately at actual cost.</div>
+    </div>
+
+    <button class="btn btn-primary btn-lg"><i class="bi bi-calendar-check"></i>Confirm booking</button>
+  </form>
+</div>
+{% endblock %}

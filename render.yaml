@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: carcraft
+    runtime: python
+    plan: free
+    buildCommand: ./build.sh
+    startCommand: gunicorn carcraft.wsgi:application
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false

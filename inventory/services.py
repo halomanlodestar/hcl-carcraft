@@ -11,7 +11,8 @@ from core.models import Notification, notify
 
 from .models import Sale, TestDrive, TradeInRequest, Vehicle
 
-DEPRECIATION_PER_YEAR = Decimal("0.85")
+FIRST_YEAR_RETAINED = Decimal("0.85")
+LATER_YEARS_RETAINED = Decimal("0.90")
 CONDITION_FACTOR = {"EXCELLENT": Decimal("1.00"), "GOOD": Decimal("0.90"), "FAIR": Decimal("0.78"), "POOR": Decimal("0.62")}
 AVG_KM_PER_YEAR = 12_000
 TEST_DRIVE_SLOTS = [time(h) for h in range(10, 18)]
@@ -21,12 +22,12 @@ def estimate_trade_in(vehicle_model, year, km_driven, condition):
     """See docs/DESIGN.md §7.4."""
     base = Decimal(vehicle_model.base_price)
     age = max(0, timezone.now().year - int(year))
-    value = base * DEPRECIATION_PER_YEAR ** age
+    value = base * (FIRST_YEAR_RETAINED * LATER_YEARS_RETAINED ** (age - 1) if age else 1)
     value *= CONDITION_FACTOR[condition]
     km_excess = max(0, int(km_driven) - age * AVG_KM_PER_YEAR)
     value *= max(Decimal("0.70"), 1 - Decimal(km_excess) / 10_000 * Decimal("0.01"))
     value = max(value, base * Decimal("0.10"))
-    return Decimal(round(value, -3))
+    return Decimal(int(round(value, -3)))
 
 
 def book_test_drive(vehicle, customer, scheduled_at, notes=""):
@@ -73,9 +74,11 @@ def make_trade_in_offer(trade_in, value):
            reverse("inventory:my_trade_ins"), Notification.Kind.SUCCESS, "bi-tag")
 
 
+RTO_CODES = ["MH12"] * 6 + ["MH14"] * 3 + ["MH01", "MH02", "MH04", "MH15", "DL01", "KA05", "GJ01", "HR26", "TS09"]
+
+
 def random_reg_number():
-    state = random.choice(["MH", "DL", "KA", "TN", "GJ", "UP", "HR", "TS"])
-    return f"{state}{random.randint(1, 50):02d}{''.join(random.choices(string.ascii_uppercase, k=2))}{random.randint(1000, 9999)}"
+    return f"{random.choice(RTO_CODES)}{''.join(random.choices(string.ascii_uppercase, k=2))}{random.randint(1000, 9999)}"
 
 
 @transaction.atomic
@@ -95,8 +98,8 @@ def record_sale(vehicle, customer, salesperson, sale_price, trade_in=None, sold_
         trade_in.status = TradeInRequest.Status.ACCEPTED
         trade_in.save(update_fields=["status"])
 
-    reg = random_reg_number()
-    while CustomerVehicle.objects.filter(reg_number=reg).exists():
+    reg = vehicle.reg_number or random_reg_number()
+    while not vehicle.reg_number and CustomerVehicle.objects.filter(reg_number=reg).exists():
         reg = random_reg_number()
     CustomerVehicle.objects.create(
         owner=customer, vehicle_model=vehicle.vehicle_model, year=vehicle.year, reg_number=reg,
@@ -106,3 +109,47 @@ def record_sale(vehicle, customer, salesperson, sale_price, trade_in=None, sold_
         notify(customer, f"Congratulations on your new {vehicle.title}! It's been added to your garage.",
                reverse("service:garage"), Notification.Kind.SUCCESS, "bi-trophy")
     return sale
+
+
+def monthly_emi(principal, annual_rate, months):
+    principal = Decimal(principal)
+    if principal <= 0:
+        return Decimal("0")
+    r = Decimal(str(annual_rate)) / 1200
+    if not r:
+        return principal / months
+    f = (1 + r) ** months
+    return principal * r * f / (f - 1)
+
+
+UPGRADE_BANDS = [
+    ("same", "Same EMI or less", "bi-check2-circle", 1000),
+    ("step", "A small step up", "bi-arrow-up-right", 4000),
+    ("stretch", "Worth the stretch", "bi-rocket-takeoff", 10000),
+]
+
+
+def upgrade_options(trade_value, outstanding, current_emi, extra_down, rate, months, exclude_model=None, current_year=0):
+    """In-stock cars that are a real step up (much pricier, or clearly newer), priced as
+    (price − equity − extra down payment) financed at rate/months, compared with today's EMI."""
+    from django.db.models import Q
+
+    equity = Decimal(trade_value) - Decimal(outstanding)
+    bands = {key: [] for key, *_ in UPGRADE_BANDS}
+    step_up = Q(price__gte=Decimal(trade_value) * Decimal("1.6")) | Q(year__gte=current_year + 2, price__gt=trade_value)
+    stock = (Vehicle.objects.filter(step_up, status=Vehicle.Status.AVAILABLE)
+             .select_related("vehicle_model__make"))
+    if exclude_model:
+        stock = stock.exclude(vehicle_model=exclude_model)
+    for v in stock:
+        loan = max(Decimal("0"), v.price - equity - Decimal(extra_down))
+        emi = monthly_emi(loan, rate, months)
+        delta = emi - Decimal(current_emi)
+        for key, _, _, limit in UPGRADE_BANDS:
+            if delta <= limit:
+                bands[key].append({"v": v, "loan": loan, "emi": emi.quantize(Decimal("1")), "delta": delta.quantize(Decimal("1"))})
+                break
+    for key in bands:
+        bands[key].sort(key=lambda o: o["v"].price, reverse=True)
+        bands[key] = bands[key][:6]
+    return equity, [(key, label, icon, bands[key]) for key, label, icon, _ in UPGRADE_BANDS]

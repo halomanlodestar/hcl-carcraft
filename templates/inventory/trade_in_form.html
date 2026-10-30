@@ -10,6 +10,13 @@
   <div class="row g-4">
     <div class="col-lg-7">
       <form method="post" class="cc-card p-4" novalidate>{% csrf_token %}
+        <label class="form-label" for="id_reg_number"><i class="bi bi-passport me-1 text-primary"></i>Registration number <small class="text-muted fw-normal">(optional, for a history-based value)</small></label>
+        <div class="plate-input mb-1" style="border-width: 2px; border-radius: 10px; box-shadow: none">
+          <span class="ind" aria-hidden="true">IND</span>
+          <input name="reg_number" id="id_reg_number" value="{{ form.reg_number.value|default:'' }}" placeholder="MH12AB1234" autocomplete="off" style="font-size: 1.25rem">
+        </div>
+        <small class="text-muted d-block mb-3">We check owners, challans, insurance claims and odometer history. {% if reg_not_found %}<span class="text-danger">Not found in the registry; showing a standard estimate.</span>{% endif %}</small>
+        <div class="d-flex align-items-center gap-2 mb-3"><hr class="flex-grow-1 my-0"><small class="text-muted fw-semibold">CAR DETAILS</small><hr class="flex-grow-1 my-0"></div>
         <div class="mb-3">
           <label class="form-label" for="{{ form.vehicle_model.id_for_label }}"><i class="bi bi-car-front me-1 text-primary"></i>{{ form.vehicle_model.label }}</label>
           <select name="vehicle_model" id="{{ form.vehicle_model.id_for_label }}" class="form-select {% if form.vehicle_model.errors %}is-invalid{% endif %}">
@@ -58,7 +65,10 @@
     <div class="col-lg-5">
       {% if estimate %}
       <div class="estimate-box">
-        <small class="opacity-75 fw-semibold text-uppercase" style="letter-spacing:.08em">Estimated value</small>
+        <div class="d-flex justify-content-between align-items-center">
+          <small class="opacity-75 fw-semibold text-uppercase" style="letter-spacing:.08em">{% if valuation %}History-adjusted value{% else %}Estimated value{% endif %}</small>
+          {% if valuation %}{% grade_chip valuation %}{% endif %}
+        </div>
         <div class="amount my-1">{{ estimate|inr }}</div>
         <div class="d-flex align-items-center gap-2 opacity-75 small">{% brand_logo form.cleaned_data.vehicle_model.make "sm" %}{{ form.cleaned_data.year }} {{ form.cleaned_data.vehicle_model }} · {{ form.cleaned_data.km_driven|km }}</div>
         <hr class="border-light opacity-25">
@@ -73,6 +83,15 @@
         <a href="{% url 'accounts:login' %}?next={{ request.path }}" class="btn btn-light w-100 fw-bold"><i class="bi bi-box-arrow-in-right"></i>Sign in to get a firm offer</a>
         {% endif %}
       </div>
+      {% if valuation %}
+      <div class="cc-card p-3 mt-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <b class="small"><i class="bi bi-bar-chart-steps me-1 text-primary"></i>How we got there</b>
+          <a href="{% url 'passport:detail' passport_reg %}" class="small fw-semibold">Full passport <i class="bi bi-chevron-right"></i></a>
+        </div>
+        {% include "partials/waterfall.html" with steps=valuation.steps compact=True %}
+      </div>
+      {% endif %}
       {% else %}
       <div class="cc-card p-4 h-100">
         <div class="section-title"><i class="bi bi-lightbulb"></i>How it works</div>

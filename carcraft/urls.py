@@ -13,5 +13,6 @@ urlpatterns = [
     path("store/", include("store.urls")),
     path("service/", include("service.urls")),
     path("dashboard/", include("dashboard.urls")),
+    path("passport/", include("passport.urls")),
     path("", include("core.urls")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

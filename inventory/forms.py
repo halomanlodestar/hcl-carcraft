@@ -14,6 +14,7 @@ def grouped_model_choices():
 
 
 class TradeInForm(forms.Form):
+    reg_number = forms.CharField(max_length=15, required=False, label="Registration number")
     vehicle_model = forms.ChoiceField(label="Make & model")
     year = forms.TypedChoiceField(coerce=int)
     km_driven = forms.IntegerField(label="Kilometres driven", min_value=0, max_value=500_000,
@@ -32,6 +33,9 @@ class TradeInForm(forms.Form):
             return VehicleModel.objects.select_related("make").get(pk=self.cleaned_data["vehicle_model"])
         except (VehicleModel.DoesNotExist, ValueError):
             raise forms.ValidationError("Please choose your car.")
+
+    def clean_reg_number(self):
+        return self.cleaned_data["reg_number"].upper().replace(" ", "").replace("-", "")
 
 
 class SaleForm(forms.Form):

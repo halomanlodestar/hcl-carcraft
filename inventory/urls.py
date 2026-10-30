@@ -15,6 +15,7 @@ urlpatterns = [
     path("test-drives/", views.test_drive_queue, name="test_drives"),
     path("test-drives/<int:pk>/action/", views.test_drive_action, name="test_drive_action"),
     path("trade-in/", views.trade_in, name="trade_in"),
+    path("upgrade/", views.upgrade, name="upgrade"),
     path("my/trade-ins/", views.my_trade_ins, name="my_trade_ins"),
     path("my/trade-ins/<int:pk>/respond/", views.trade_in_respond, name="trade_in_respond"),
     path("trade-ins/", views.trade_in_queue, name="trade_ins"),

@@ -28,10 +28,15 @@
             <div>
               <h2 class="h5 mb-0">{{ car.vehicle_model }}</h2>
               <div class="d-flex align-items-center gap-2 mt-1">
-                <span class="font-monospace fw-bold px-2 py-1 rounded-2 small" style="background: #fde047; color: #111; letter-spacing: .05em">{{ car.reg_number }}</span>
+                {% reg_plate car.reg_number "sm" %}
                 <span class="text-muted small">{{ car.year }} · {{ car.km_driven|km }}</span>
               </div>
             </div>
+            {% if car.passport %}
+            <a href="{% url 'passport:detail' car.reg_number %}" class="text-end text-reset me-2 d-none d-sm-block" data-bs-toggle="tooltip" title="History-adjusted trade-in value">
+              <small class="text-muted d-block lh-1">Worth today</small><b>{{ car.passport.final|lakh }}</b>
+            </a>
+            {% endif %}
             {% if active %}<span class="badge-status badge-status-primary"><i class="bi bi-wrench-adjustable"></i>In service</span>
             {% elif car.is_service_due %}<span class="due-pill"><i class="bi bi-exclamation-triangle-fill"></i>Service due</span>
             {% else %}<span class="ok-pill"><i class="bi bi-check-circle-fill"></i>All good</span>{% endif %}
@@ -53,6 +58,12 @@
             <a href="{% url 'service:book' %}?car={{ car.pk }}" class="btn btn-primary btn-sm">Book now <i class="bi bi-chevron-right"></i></a>
           </div>
           {% endif %}
+
+          <div class="d-flex flex-wrap gap-2 mt-3">
+            {% if car.passport %}<a href="{% url 'passport:detail' car.reg_number %}" class="btn btn-soft btn-sm" title="Trust score {{ car.passport.score }}/100">{% grade_chip car.passport True %}</a>{% endif %}
+            <a href="{% url 'inventory:upgrade' %}?car={{ car.pk }}" class="btn btn-soft btn-sm"><i class="bi bi-arrow-up-circle text-primary"></i>Plan an upgrade</a>
+            {% if car.loan_outstanding %}<span class="spec-pill align-self-center"><i class="bi bi-bank"></i>EMI {{ car.current_emi|inr }} · {{ car.loan_outstanding|lakh }} left</span>{% endif %}
+          </div>
 
           {% with history=car.jobs.all %}
           {% if history %}

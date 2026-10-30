@@ -87,6 +87,7 @@
             <a class="dropdown-item" href="{% url 'store:orders' %}"><i class="bi bi-receipt"></i>My orders</a>
             <a class="dropdown-item" href="{% url 'inventory:my_test_drives' %}"><i class="bi bi-calendar-event"></i>Test drives</a>
             <a class="dropdown-item" href="{% url 'inventory:my_trade_ins' %}"><i class="bi bi-arrow-left-right"></i>Trade-ins</a>
+            <a class="dropdown-item" href="{% url 'inventory:upgrade' %}"><i class="bi bi-arrow-up-circle"></i>Upgrade planner</a>
             {% endif %}
             {% if user.is_admin_role %}
             <a class="dropdown-item" href="{% url 'admin:index' %}"><i class="bi bi-database-gear"></i>Django admin</a>
@@ -120,6 +121,7 @@
             <a class="nav-link {% if app == 'service' %}active{% endif %}" href="{% url 'service:garage' %}"><i class="bi bi-wrench-adjustable"></i>Service</a>
           {% endif %}
         </li>
+        <li class="nav-item"><a class="nav-link {% if app == 'passport' %}active{% endif %}" href="{% url 'passport:check' %}"><i class="bi bi-passport"></i>Car Passport</a></li>
         {% if user.is_authenticated and not user.is_customer %}
         <li class="nav-item"><a class="nav-link {% if app == 'dashboard' and request.resolver_match.url_name != 'analytics' %}active{% endif %}" href="{% url 'dashboard:home' %}"><i class="bi bi-grid-1x2"></i>Dashboard</a></li>
         {% endif %}

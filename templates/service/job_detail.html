@@ -115,7 +115,7 @@
         <div class="p-3">
           <b>{{ cv.vehicle_model }}</b>
           <div class="d-flex align-items-center gap-2 mt-1">
-            <span class="font-monospace fw-bold px-2 py-1 rounded-2 small" style="background:#fde047;color:#111">{{ cv.reg_number }}</span>
+            {% reg_plate cv.reg_number "sm" %}
             <small class="text-muted">{{ cv.year }}{% if job.odometer_km %} · {{ job.odometer_km|km }} at check-in{% endif %}</small>
           </div>
           {% if not user.is_customer %}<div class="small mt-2"><i class="bi bi-person me-1 text-muted"></i>{{ cv.owner.display_name }}{% if cv.owner.phone %} · <i class="bi bi-telephone ms-1 me-1 text-muted"></i>{{ cv.owner.phone }}{% endif %}</div>{% endif %}

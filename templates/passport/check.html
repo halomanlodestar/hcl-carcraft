@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Car Passport{% endblock %}
+{% block content %}
+<section class="hero pb-5">
+  <div class="container py-5" style="max-width: 52rem">
+    <div class="text-center">
+      <span class="badge rounded-pill text-bg-dark border border-secondary-subtle mb-3 px-3 py-2 fw-semibold"><i class="bi bi-passport me-1 text-warning"></i> Car Passport</span>
+      <h1 class="mb-3">Know a car's past before you pay for its future.</h1>
+      <p class="lead mx-auto mb-4">Owners, challans, insurance claims and odometer history in one report, turned into a value you can see line by line.</p>
+    </div>
+    <form method="get" class="plate-input mx-auto" style="max-width: 36rem" role="search">
+      <span class="ind" aria-hidden="true">IND</span>
+      <input name="reg" value="{{ reg }}" placeholder="MH12AB1234" aria-label="Registration number" autocomplete="off" required>
+      <button class="btn btn-primary"><i class="bi bi-search"></i><span class="d-none d-sm-inline">Check</span></button>
+    </form>
+    {% if samples %}
+    <div class="text-center mt-4">
+      <small class="d-block mb-2" style="color: rgba(255,255,255,.6)">Try a sample car</small>
+      <div class="d-flex flex-wrap justify-content-center gap-2">
+        {% for rec, icon, label in samples %}
+        <a href="{% url 'passport:detail' rec.reg_number %}" class="btn btn-sm" style="background: rgba(255,255,255,.1); color: #fff; border: 1px solid rgba(255,255,255,.18)">
+          <i class="bi {{ icon }}"></i>{{ label }} <span class="opacity-50 d-none d-md-inline">· {{ rec.vehicle_model.name }}</span>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+<div class="container mt-5">
+  <div class="row g-3 row-cols-1 row-cols-sm-2 row-cols-lg-5">
+    <div class="col"><div class="cc-card feature-tile flex-column"><span class="ico"><i class="bi bi-people"></i></span><div><h3>Ownership</h3><p>How many owners, when, where, and whether a loan is still open.</p></div></div></div>
+    <div class="col"><div class="cc-card feature-tile flex-column"><span class="ico"><i class="bi bi-receipt-cutoff"></i></span><div><h3>Challans</h3><p>Overspeeding and red-light fines reveal how hard the car was driven.</p></div></div></div>
+    <div class="col"><div class="cc-card feature-tile flex-column"><span class="ico"><i class="bi bi-shield-exclamation"></i></span><div><h3>Claims</h3><p>Accident and flood claims that a fresh coat of paint can hide.</p></div></div></div>
+    <div class="col"><div class="cc-card feature-tile flex-column"><span class="ico"><i class="bi bi-speedometer2"></i></span><div><h3>Odometer</h3><p>Readings from services, PUC and insurance, checked for rollbacks.</p></div></div></div>
+    <div class="col"><div class="cc-card feature-tile flex-column"><span class="ico"><i class="bi bi-bar-chart-steps"></i></span><div><h3>Itemised value</h3><p>Every rupee added or taken off, with the reason.</p></div></div></div>
+  </div>
+  <div class="demo-banner mt-4 justify-content-center"><i class="bi bi-info-circle"></i>Demo: records come from a simulated registry. Live VAHAN, e-challan and insurer data is on the roadmap.</div>
+</div>
+{% endblock %}

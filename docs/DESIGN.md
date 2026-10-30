@@ -392,7 +392,7 @@ def advance(job, new_status, by_user, note=""):
 
 ```
 age        = current_year - year
-value      = base_price × 0.85^age                         # ~15% depreciation per year
+value      = base_price × 0.85 × 0.90^(age − 1)           # 15% in year one, then 10% a year
 value     ×= {EXCELLENT: 1.00, GOOD: 0.90, FAIR: 0.78, POOR: 0.62}[condition]
 km_excess  = max(0, km_driven - age × 12_000)               # above-average usage
 value     ×= max(0.70, 1 - km_excess / 10_000 × 0.01)       # -1% per extra 10k km, capped at -30%
@@ -554,3 +554,49 @@ Each phase ends with something demo-able.
 | Stock movement ledger | S | `StockMovement(part, delta, reason, ref)` written by `adjust_stock()` |
 | VIN decoder | S | NHTSA vPIC free API; needs internet during the demo |
 | Car recommender | M | rule-based quiz (budget, seats, fuel) → filtered query; no AI needed |
+
+---
+
+## 13. Signature features
+
+### 13.1 Car Passport (`passport` app)
+
+A history report for any registration number that also explains the car's value line by line.
+
+**Data:** a simulated registry shaped like what licensed RC/VAHAN APIs return.
+
+| Model | Holds |
+|---|---|
+| `RegistryRecord` | reg number, model, year, registration date, RTO, open loan (`hypothecated_to`), insurance and PUC validity |
+| `OwnershipPeriod` | owner serial, event (new / sale / interstate), from–to dates, city/state, lender and loan-closed date. **No owner names.** |
+| `Challan` | offence, date, city, fine, status (paid / pending / court), which owner |
+| `InsuranceClaim` | kind (minor / major / flood / glass), date, amount, insurer |
+| `OdometerReading` | date, km, source (PDI, service, CarCraft service, PUC, insurance renewal) |
+
+**Valuation** (`passport/valuation.py`) starts from the trade-in estimate (§7.4) and applies explainable adjustments:
+
+| Signal | Price effect | Trust score |
+|---|---|---|
+| Owners | 2nd −3%, 3rd −6%, 4th+ −10% | −5 per extra owner |
+| Interstate transfer | −1% | −3 |
+| Hard-driving challans (overspeeding, red light, dangerous driving) | none: +1% · 1–2: −1% · 3–5: −3% · 6+: −5% | −4 each, max −25 |
+| Pending challans | minus the exact rupee amount (cleared before RC transfer) | −5 |
+| Insurance claims | minor −2%, glass −0.5%, major −6%, flood −15% (cap −25%) | −4 / −12 / −30 |
+| Odometer reading lower than an earlier one | −8% | −45 |
+| 2+ services at CarCraft | +2% | +3 |
+
+Grades: **A** ≥ 85, **B** ≥ 70, **C** ≥ 50, **D** below. Parking, seatbelt and paperwork challans are listed but don't move the price, because they don't say anything about mechanical wear.
+
+**Where it appears:** `/passport/` (search plus four sample "story" cars), `/passport/<reg>/` (full report with waterfall, odometer chart, timeline), the trade-in form (enter a reg number to get the history-adjusted value), pre-owned car pages, the sales trade-in queue (grade and red-flag icons), and My Garage ("worth today").
+
+### 13.2 Same-EMI Upgrade Planner (`/inventory/upgrade/`)
+
+For a car in the customer's garage: **equity = passport value − loan outstanding**. Every in-stock car that's a real step up (≥ 1.6× the trade-in value, or 2+ model years newer) is priced as `EMI(price − equity − extra down payment, rate, tenure)` and compared with the current EMI. Results are grouped as *Same EMI or less* (≤ +₹1,000), *A small step up* (≤ +₹4,000) and *Worth the stretch* (≤ +₹10,000). Loan amount, current EMI, extra down payment, tenure and rate are all adjustable.
+
+### 13.3 Future scope: live registry integration
+
+Swap the mock registry for live data through licensed providers (VAHAN-backed RC APIs, e-challan, insurer claim data), and clear pending challans automatically as part of RC transfer. The models already mirror the shape of that data. What limits it today:
+- **Cost:** per-lookup API fees.
+- **Consent:** the owner must authorise each lookup.
+- **Data protection:** India's DPDP Act governs how owner data is stored and shown, which is why the passport never stores names.
+- **Coverage:** challan data varies by state; claim history and other workshops' odometer readings need insurer and OEM partnerships.

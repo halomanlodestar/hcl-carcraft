@@ -157,3 +157,24 @@ def initials(name):
 def rs(value):
     """Rs. 12,34,567.00 — for PDFs, where the default fonts lack the ₹ glyph."""
     return inr(value, 2).replace("₹", "Rs. ")
+
+
+@register.simple_tag
+def reg_plate(number, size=""):
+    """Indian private number plate: white with black text and the blue IND strip."""
+    return format_html('<span class="reg-plate {}" aria-label="Registration {}"><span>{}</span></span>', size, number, number)
+
+
+@register.simple_tag
+def grade_chip(valuation, with_label=False):
+    letter, label, tone = valuation.grade
+    text = f"{letter} · {label}" if with_label else f"Passport {letter}"
+    return format_html('<span class="grade-chip {}" title="Trust score {}/100"><i class="bi bi-passport"></i>{}</span>', tone, valuation.score, text)
+
+
+@register.filter
+def absval(value):
+    try:
+        return abs(value)
+    except TypeError:
+        return value

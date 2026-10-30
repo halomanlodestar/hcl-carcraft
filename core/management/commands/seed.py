@@ -13,8 +13,11 @@ from faker import Faker
 from accounts.models import User
 from core.models import Notification
 from core.seed_data import catalog as C
+from core.seed_data.history import STORY_REGS, create_record
 from inventory import services as inv_services
 from inventory.models import Make, Sale, TestDrive, TradeInRequest, Vehicle, VehicleModel
+from passport.models import RegistryRecord
+from passport.valuation import passport_for
 from service.models import CustomerVehicle, ServiceJob, ServicePart, ServiceStatusLog, ServiceType
 from store.models import Coupon, Order, OrderItem, Part, PartCategory
 from store.services import compute_totals
@@ -54,6 +57,7 @@ class Command(BaseCommand):
             self.seed_test_drives()
             self.seed_orders()
             self.seed_service()
+            self.seed_registry()
             self.seed_notifications()
         self.report()
 
@@ -61,7 +65,7 @@ class Command(BaseCommand):
 
     def truncate(self):
         tables = []
-        for label in ("core", "accounts", "inventory", "store", "service"):
+        for label in ("core", "accounts", "inventory", "store", "service", "passport"):
             tables += [m._meta.db_table for m in apps.get_app_config(label).get_models()]
         tables += ["django_session", "django_admin_log"]
         with connection.cursor() as cur:
@@ -263,7 +267,7 @@ class Command(BaseCommand):
         return Vehicle.objects.create(
             vehicle_model=vm, variant=variants[tier], year=year, condition=condition, price=price, mileage_km=mileage,
             fuel=fuel, transmission=transmission, color=cname, color_hex=chex, vin=self.vin(), specs=specs,
-            features=features, created_at=created_at,
+            features=features, created_at=created_at, reg_number=self.reg_number() if condition == "USED" else "",
         )
 
     def seed_vehicles_and_sales(self):
@@ -310,8 +314,17 @@ class Command(BaseCommand):
                 status=status, created_at=created_at,
             )
 
-        for c in random.sample(self.customers[1:], 3):
-            create(c, "PENDING", self.ago(days=random.randint(0, 4), hours=random.randint(1, 9)))
+        self.story_trade_ins = []
+        stories = [("challans", "Seltos", 2019, 68000, "GOOD"), ("rollback", "City", 2017, 41000, "EXCELLENT"),
+                   ("flood", "Baleno", 2018, 52000, "GOOD")]
+        for c, (story, model_name, year, km, cond) in zip(random.sample(self.customers[1:], 3), stories):
+            vm = self.models[model_name]
+            t = TradeInRequest.objects.create(
+                customer=c, vehicle_model=vm, year=year, km_driven=km, condition_rating=cond, reg_number=STORY_REGS[story],
+                estimated_value=inv_services.estimate_trade_in(vm, year, km, cond), status="PENDING",
+                created_at=self.ago(days=random.randint(0, 4), hours=random.randint(1, 9)))
+            self.story_trade_ins.append((story, t))
+            self.used_regs.add(STORY_REGS[story])
         self.c1_trade_in = create(self.customer1, "OFFERED", self.ago(days=1, hours=3), offered=True, model_name="Baleno")
         for c in random.sample(self.customers[1:], 2):
             create(c, "OFFERED", self.ago(days=random.randint(1, 6)), offered=True)
@@ -510,6 +523,53 @@ class Command(BaseCommand):
                 else:
                     self.add_job_parts(job, random.randint(1, 3))
 
+    # ------------------------------------------------------------------ registry (mock VAHAN)
+
+    def seed_registry(self):
+        rng = random.Random(7)
+
+        # Used cars in our stock: history ends the day we bought them. One is the "clean" showcase.
+        used_stock = [v for v in Vehicle.objects.filter(condition="USED").exclude(status="SOLD").select_related("vehicle_model")]
+        for i, v in enumerate(used_stock):
+            story = "clean" if i == 0 else None
+            if story:
+                v.reg_number = STORY_REGS["clean"]
+                v.save(update_fields=["reg_number"])
+            create_record(rng, v.reg_number, v.vehicle_model, v.year, v.mileage_km, v.fuel, v.color,
+                          history_end=timezone.localtime(v.created_at).date(), story=story)
+
+        # Every car in a customer's garage
+        loans = {self.c1_creta.pk: ("HDFC Bank", 640000, 18900), self.c1_swift.pk: ("Bajaj Finance", 85000, 7400)}
+        for cv in CustomerVehicle.objects.select_related("vehicle_model", "purchased_vehicle", "owner"):
+            jobs = cv.jobs.filter(status="DELIVERED", odometer_km__isnull=False)
+            cc = [(timezone.localtime(j.completed_at).date(), j.odometer_km) for j in jobs]
+            bought = timezone.localtime(cv.created_at).date()
+            pv = cv.purchased_vehicle
+            lender = loans.get(cv.pk, (None,))[0]
+            kwargs = {"carcraft_readings": cc, "open_loan": lender}
+            if pv and pv.condition == "NEW":
+                kwargs.update(owners=1, reg_date=bought)
+            elif pv:
+                kwargs.update(owners=random.choice([2, 2, 3]), current_owner_from=bought)
+            elif cv == self.c1_swift:
+                kwargs.update(owners=2, current_owner_from=bought)
+            fuel = pv.fuel if pv else random.choice(self.model_specs[cv.vehicle_model.name][0])
+            rec = create_record(rng, cv.reg_number, cv.vehicle_model, cv.year, cv.km_driven, fuel,
+                                pv.color if pv else "", **kwargs)
+            if cv.pk in loans:
+                _, cv.loan_outstanding, cv.current_emi = loans[cv.pk]
+            elif rec.hypothecated_to:
+                cv.loan_outstanding = round(float(cv.vehicle_model.base_price) * random.uniform(0.15, 0.6), -3)
+                cv.current_emi = round(float(cv.loan_outstanding) / random.randint(24, 48), -2)
+            cv.save(update_fields=["loan_outstanding", "current_emi"])
+
+        # The three story trade-ins: valued from their history, so the sales queue shows the real number
+        for story, t in self.story_trade_ins:
+            create_record(rng, t.reg_number, t.vehicle_model, t.year, t.km_driven, "PETROL", "", story=story)
+            _, valuation = passport_for(t.reg_number, t.km_driven, t.condition_rating)
+            t.estimated_value = valuation.final
+            t.save(update_fields=["estimated_value"])
+
     # ------------------------------------------------------------------ notifications
 
     def seed_notifications(self):
@@ -548,6 +608,7 @@ class Command(BaseCommand):
             ("Garage cars", CustomerVehicle.objects.count()), ("Service jobs", ServiceJob.objects.count()),
             ("  active", ServiceJob.objects.filter(status__in=ServiceJob.ACTIVE_STATUSES).count()),
             ("Notifications", Notification.objects.count()),
+            ("Registry records", RegistryRecord.objects.count()),
         ]
         self.stdout.write(self.style.SUCCESS("\nSeed complete"))
         for label, n in rows:

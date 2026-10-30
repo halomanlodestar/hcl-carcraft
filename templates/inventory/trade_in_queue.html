@@ -15,7 +15,8 @@
       <tbody>
       {% for t in items %}
       <tr>
-        <td><div class="d-flex align-items-center gap-2">{% brand_logo t.vehicle_model.make "md" %}<div class="lh-sm"><b>{{ t.vehicle_model.name }}</b><div class="small text-muted">{{ t.year }}</div></div></div></td>
+        <td><div class="d-flex align-items-center gap-2">{% brand_logo t.vehicle_model.make "md" %}<div class="lh-sm"><b>{{ t.vehicle_model.name }}</b><div class="small text-muted">{{ t.year }}</div></div></div>
+          {% if t.passport %}<a href="{% url 'passport:detail' t.reg_number %}" class="d-inline-flex align-items-center gap-1 mt-2 text-reset">{% grade_chip t.passport %}{% for f in t.passport.flags %}{% if f.tone == "danger" %}<i class="bi {{ f.icon }} text-danger" title="{{ f.title }}" data-bs-toggle="tooltip"></i>{% endif %}{% endfor %}</a>{% endif %}</td>
         <td>{{ t.customer.display_name }}<div class="small text-muted">{{ t.created_at|date:"j M" }}</div></td>
         <td class="small"><i class="bi bi-speedometer2 me-1 text-muted"></i>{{ t.km_driven|km }}<br><i class="bi bi-clipboard-check me-1 text-muted"></i>{{ t.get_condition_rating_display }}</td>
         <td class="text-end fw-semibold">{{ t.estimated_value|inr }}</td>

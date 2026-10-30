@@ -24,6 +24,11 @@ from .models import CustomerVehicle, ServiceJob, ServicePart, ServiceType
 def garage(request):
     cars = (request.user.garage.select_related("vehicle_model__make")
             .prefetch_related(Prefetch("jobs", queryset=ServiceJob.objects.select_related("service_type").order_by("-scheduled_date"))))
+    from passport.valuation import passport_for
+
+    cars = list(cars)
+    for car in cars:
+        car.passport = passport_for(car.reg_number, car.km_driven)[1]
     return render(request, "service/garage.html", {"cars": cars})
 
 

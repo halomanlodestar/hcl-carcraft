@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     "store",
     "service",
     "dashboard",
+    "passport",
 ]
 
 MIDDLEWARE = [

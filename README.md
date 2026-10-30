@@ -41,6 +41,11 @@ All passwords are `demo1234`. The sign-in page has one-click buttons for each ac
 
 `python manage.py seed --reset` wipes and recreates everything. The data is deterministic, so every teammate sees the same demo.
 
+## Signature features
+
+- **Car Passport** (`/passport/`): enter any registration number to see owners, challans, insurance claims and odometer history, plus a line-by-line breakdown of how that history changes the car's value. Try the sample cars: a clean one-owner Altroz, a Seltos with heavy challans, a City with a rolled-back odometer, and a flood-claim Baleno. The data comes from a simulated registry; see `docs/DESIGN.md` §13 for the real-data roadmap.
+- **Same-EMI Upgrade Planner** (`/inventory/upgrade/`, as `customer1`): trade the Swift and see which cars in stock fit roughly the same monthly payment.
+
 ## Feature tour (about 8 minutes)
 
 1. **Browse:** home, then *Cars*. Filter by brand logo, body type, fuel and budget. Search "creta". Add 2–3 cars to compare. Open a car and play with the EMI sliders.
@@ -49,7 +54,8 @@ All passwords are `demo1234`. The sign-in page has one-click buttons for each ac
 4. **`mech1`:** open the Creta job, add *Bosch Front Brake Pads* and click *Mark ready*.
 5. **`customer1`:** the bell shows "Your Creta is ready for pickup!" and the tracker has moved on.
 6. **`sales1`:** confirm a test drive, make a trade-in offer, and record a sale from any car page.
-7. **`admin`:** look at the analytics (festive-season spike, top models, days to sell). The low-stock list now includes the brake pads; restock them. Ship an order and assign a mechanic.
+7. **Car Passport:** open *Car Passport*, tap *Odometer rollback*, and walk through the grade-D report. Then, as `customer1`, open *Plan an upgrade* from My Garage.
+8. **`admin`:** look at the analytics (festive-season spike, top models, days to sell). The low-stock list now includes the brake pads; restock them. Ship an order and assign a mechanic.
 
 ## Project layout
 

@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Upgrade planner{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="page-head">
+    <div class="eyebrow">Upgrade planner</div>
+    <h1>What can you drive for what you pay now?</h1>
+    <p class="text-muted mb-0">Your car's history-based trade-in value, minus what's left on its loan, becomes the down payment on your next one.</p>
+  </div>
+
+  <form method="get" data-autosubmit id="planner">
+  <div class="row g-4">
+    <aside class="col-lg-4">
+      <div class="cc-card p-4" style="position: sticky; top: 5.5rem">
+        <div class="filter-label"><i class="bi bi-house-door"></i>Your current car</div>
+        <div class="d-grid gap-2 mb-3">
+          {% for c in cars %}
+          <div class="choice-card">
+            <input type="radio" name="car" id="car{{ c.pk }}" value="{{ c.pk }}" {% if c == car %}checked{% endif %}>
+            <label for="car{{ c.pk }}" class="py-2">
+              <span class="car-stage car-thumb" style="--car: {{ c.color_hex }}; width: 4.6rem">{% car_art c.vehicle_model.body_type c.color_hex "sm" %}</span>
+              <span class="lh-sm min-w-0"><span class="d-flex align-items-center gap-1 fw-bold">{% brand_logo c.vehicle_model.make "sm" %}{{ c.vehicle_model.name }}</span><small class="text-muted">{{ c.year }} · {{ c.km_driven|km }}</small></span>
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="p-3 rounded-3 mb-3" style="background: var(--cc-surface-2)">
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="small text-muted fw-semibold">Trade-in value</span>
+            {% if valuation %}<a href="{% url 'passport:detail' car.reg_number %}">{% grade_chip valuation %}</a>{% endif %}
+          </div>
+          <div class="price fs-3">{{ trade_value|inr }}</div>
+          {% if valuation %}<a href="{% url 'passport:detail' car.reg_number %}" class="small">See how we got this <i class="bi bi-chevron-right"></i></a>{% endif %}
+          {% if outstanding %}
+          <div class="equity-bar mt-3" aria-hidden="true">
+            <span style="width: {{ equity_pct|floatformat:1 }}%; background: #f04438"></span>
+            <span style="flex: 1; background: #12b76a"></span>
+          </div>
+          <div class="d-flex justify-content-between small mt-1">
+            <span><i class="bi bi-circle-fill me-1" style="color:#f04438;font-size:.5rem"></i>Loan {{ outstanding|inr }}</span>
+            <span><i class="bi bi-circle-fill me-1" style="color:#12b76a;font-size:.5rem"></i>Yours {% if equity >= 0 %}{{ equity|inr }}{% else %}−{{ equity|absval|inr }}{% endif %}</span>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <label class="form-label small" for="emi">Current EMI</label>
+            <div class="input-group input-group-sm"><span class="input-group-text">₹</span><input class="form-control" id="emi" name="emi" type="number" min="0" step="100" value="{{ current_emi|floatformat:0 }}"></div>
+          </div>
+          <div class="col-6">
+            <label class="form-label small" for="loan">Loan left</label>
+            <div class="input-group input-group-sm"><span class="input-group-text">₹</span><input class="form-control" id="loan" name="loan" type="number" min="0" step="1000" value="{{ outstanding|floatformat:0 }}"></div>
+          </div>
+        </div>
+        <div class="mb-3">
+          <div class="d-flex justify-content-between"><label class="form-label small" for="down">Extra down payment</label><b class="small tabular" id="downOut">{{ extra_down|inr }}</b></div>
+          <input type="range" class="form-range" id="down" name="down" min="0" max="500000" step="25000" value="{{ extra_down|floatformat:0 }}">
+        </div>
+        <label class="form-label small">New loan tenure</label>
+        <div class="d-flex flex-wrap gap-1 mb-3">
+          {% for t in tenures %}<label class="chip-check"><input type="radio" name="months" value="{{ t }}" {% if t == months %}checked{% endif %}><span>{% widthratio t 12 1 %} yrs</span></label>{% endfor %}
+        </div>
+        <div class="d-flex justify-content-between"><label class="form-label small" for="rate">Interest rate</label><b class="small tabular" id="rateOut">{{ rate|floatformat:2 }}%</b></div>
+        <input type="range" class="form-range" id="rate" name="rate" min="7" max="14" step="0.25" value="{{ rate|floatformat:2 }}">
+      </div>
+    </aside>
+
+    <div class="col-lg-8">
+      {% if matches %}
+        {% for key, label, icon, options in bands %}
+        {% if options %}
+        <div class="section-title mt-2"><i class="bi {{ icon }}"></i>{{ label }} <span class="badge rounded-pill text-bg-secondary ms-1">{{ options|length }}</span></div>
+        <div class="row g-3 row-cols-1 row-cols-md-2 mb-4">
+          {% for o in options %}
+          {% with v=o.v %}
+          <div class="col">
+            <div class="cc-card card-hover upgrade-card h-100 overflow-hidden position-relative">
+              <a href="{% url 'inventory:detail' v.pk %}" class="stretched-link" aria-label="{{ v }}"></a>
+              <div class="d-flex gap-3 p-3 align-items-center">
+                <div class="car-stage car-thumb" style="--car: {{ v.color_hex }}; width: 7rem">{% car_art v.vehicle_model.body_type v.color_hex "sm" %}</div>
+                <div class="min-w-0 flex-grow-1">
+                  <div class="d-flex align-items-center gap-1">{% brand_logo v.vehicle_model.make "sm" %}<b class="text-truncate">{{ v.vehicle_model.name }}</b></div>
+                  <small class="text-muted d-block text-truncate">{{ v.year }} · {{ v.variant }} · {{ v.get_condition_display }}</small>
+                  <small class="text-muted">{{ v.price|lakh }}</small>
+                </div>
+              </div>
+              <div class="d-flex justify-content-between align-items-end px-3 pb-3">
+                <div><small class="text-muted d-block">New EMI</small><b class="fs-5">{{ o.emi|inr }}</b><small class="text-muted">/mo</small></div>
+                <div class="text-end">
+                  {% if o.delta <= 0 %}<span class="delta delta-down"><i class="bi bi-arrow-down-short"></i>{{ o.delta|absval|inr }}</span>
+                  {% elif o.delta <= 1000 %}<span class="delta delta-same"><i class="bi bi-check2"></i>+{{ o.delta|inr }}</span>
+                  {% else %}<span class="delta delta-up"><i class="bi bi-arrow-up-short"></i>{{ o.delta|inr }}</span>{% endif %}
+                  <small class="text-muted d-block">vs today</small>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endwith %}
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% endfor %}
+        <p class="small text-muted"><i class="bi bi-info-circle me-1"></i>Indicative EMIs at {{ rate|floatformat:2 }}% over {{ months }} months, before processing fees. Your trade-in value is confirmed after a short inspection.</p>
+      {% else %}
+        <div class="cc-card">{% include "partials/empty_state.html" with icon="bi-sliders" title="Nothing within ₹10,000 of your current EMI" text="Try a longer tenure or a bigger down payment." %}</div>
+      {% endif %}
+    </div>
+  </div>
+  </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  var fmt = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
+  document.getElementById("down").addEventListener("input", function (e) { document.getElementById("downOut").textContent = fmt.format(e.target.value); });
+  document.getElementById("rate").addEventListener("input", function (e) { document.getElementById("rateOut").textContent = (+e.target.value).toFixed(2) + "%"; });
+</script>
+{% endblock %}

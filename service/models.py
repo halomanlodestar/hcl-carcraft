@@ -12,6 +12,8 @@ class CustomerVehicle(models.Model):
     reg_number = models.CharField(max_length=15, unique=True)
     km_driven = models.PositiveIntegerField(default=0)
     color_hex = models.CharField(max_length=7, default="#9ca3af")
+    loan_outstanding = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    current_emi = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     purchased_vehicle = models.OneToOneField(
         "inventory.Vehicle", on_delete=models.SET_NULL, null=True, blank=True, related_name="owner_record"
     )

@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Car Passport · {{ record.reg_number }}{% endblock %}
+{% block content %}
+{% with vm=record.vehicle_model letter=v.grade.0 label=v.grade.1 tone=v.grade.2 %}
+<div class="container" style="max-width: 72rem">
+  <div class="pt-4 d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <nav aria-label="breadcrumb"><ol class="breadcrumb mb-0">
+      <li class="breadcrumb-item"><a href="{% url 'passport:check' %}"><i class="bi bi-passport me-1"></i>Car Passport</a></li>
+      <li class="breadcrumb-item active">{{ record.reg_number }}</li>
+    </ol></nav>
+    <span class="demo-banner py-1"><i class="bi bi-info-circle"></i>Simulated registry data</span>
+  </div>
+
+  {# ---------- Summary ---------- #}
+  <div class="cc-card overflow-hidden mt-3">
+    <div class="row g-0">
+      <div class="col-lg-5 border-end">
+        <div class="car-stage h-100 rounded-0" style="--car: {{ paint }}; aspect-ratio: auto; min-height: 15rem">
+          <span class="stage-brand">{% brand_logo vm.make "lg" %}</span>
+          {% car_art vm.body_type paint %}
+        </div>
+      </div>
+      <div class="col-lg-7 p-4">
+        <div class="d-flex flex-wrap gap-4 align-items-center">
+          <div class="flex-grow-1">
+            {% reg_plate record.reg_number "lg" %}
+            <h1 class="h3 mt-3 mb-1">{{ vm.make.name }} {{ vm.name }}</h1>
+            <div class="text-muted">{{ record.manufacture_year }} · {{ record.fuel|title }} · {{ record.rto }}</div>
+            <div class="text-muted small">Registered {{ record.registration_date|date:"j M Y" }}</div>
+          </div>
+          <div class="trust-ring" title="Trust score {{ v.score }}/100">
+            <svg width="132" height="132" viewBox="0 0 132 132" aria-hidden="true">
+              <circle class="track" cx="66" cy="66" r="56" fill="none" stroke-width="12"/>
+              <circle class="val tone-{{ tone }}" cx="66" cy="66" r="56" fill="none" stroke="currentColor" stroke-width="12" stroke-linecap="round"
+                      stroke-dasharray="{% widthratio v.score 100 352 %} 352"/>
+            </svg>
+            <div class="center"><div><div class="grade tone-{{ tone }}">{{ letter }}</div><div class="score">{{ v.score }}/100</div></div></div>
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-2 mt-2 mb-3"><span class="grade-chip {{ tone }}"><i class="bi bi-passport"></i>{{ label }}</span></div>
+        <div class="row g-2">
+          <div class="col-6 col-md-3"><div class="stat-tile"><i class="bi bi-people"></i><div><b>{{ record.owner_count }}</b><small>Owner{{ record.owner_count|pluralize }}</small></div></div></div>
+          <div class="col-6 col-md-3"><div class="stat-tile"><i class="bi bi-receipt-cutoff"></i><div><b>{{ challans|length }}</b><small>Challans</small></div></div></div>
+          <div class="col-6 col-md-3"><div class="stat-tile"><i class="bi bi-shield-exclamation"></i><div><b>{{ claims|length }}</b><small>Claims</small></div></div></div>
+          <div class="col-6 col-md-3"><div class="stat-tile"><i class="bi {% if v.rollback %}bi-x-octagon text-danger{% else %}bi-speedometer2{% endif %}"></i><div><b>{% if v.rollback %}Mismatch{% else %}Verified{% endif %}</b><small>Odometer</small></div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ---------- Flags ---------- #}
+  <div class="row g-3 mt-1">
+    {% for f in v.flags %}
+    <div class="col-md-6 col-lg-{% if v.flags|length == 1 %}12{% elif v.flags|length == 2 %}6{% else %}4{% endif %}">
+      <div class="flag-card {{ f.tone }}"><span class="ico"><i class="bi {{ f.icon }}"></i></span><div><b>{{ f.title }}</b><div class="small text-muted">{{ f.text }}</div></div></div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="row g-4 mt-1">
+    <div class="col-lg-8">
+      {# ---------- Value breakdown ---------- #}
+      <div class="cc-card p-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+          <div>
+            <div class="section-title mb-1"><i class="bi bi-bar-chart-steps"></i>What this car is worth, and why</div>
+            <small class="text-muted">Trade-in value today, adjusted for everything in its history.</small>
+          </div>
+          <form method="get" data-autosubmit class="d-flex gap-1 flex-wrap" aria-label="Condition">
+            {% for code, lbl in conditions %}
+            <label class="chip-check"><input type="radio" name="condition" value="{{ code }}" {% if code == condition %}checked{% endif %}><span>{{ lbl }}</span></label>
+            {% endfor %}
+          </form>
+        </div>
+        {% include "partials/waterfall.html" with steps=v.steps %}
+        <div class="d-flex flex-wrap gap-2 align-items-center mt-3 pt-3 border-top">
+          <span class="small text-muted flex-grow-1">{% if v.total_adjustment < 0 %}History takes <b class="text-danger">{{ v.total_adjustment|absval|inr }}</b> off the base value.{% elif v.total_adjustment > 0 %}History adds <b class="text-success">{{ v.total_adjustment|inr }}</b> to the base value.{% else %}History doesn't change the value.{% endif %}</span>
+          {% if listing %}
+            <a href="{% url 'inventory:detail' listing.pk %}" class="btn btn-primary"><i class="bi bi-car-front"></i>See this car in our showroom</a>
+          {% elif mine %}
+            <a href="{% url 'inventory:upgrade' %}?car={{ mine.pk }}" class="btn btn-primary"><i class="bi bi-arrow-up-circle"></i>Plan an upgrade with it</a>
+          {% else %}
+            <a href="{% url 'inventory:trade_in' %}?reg={{ record.reg_number }}" class="btn btn-primary"><i class="bi bi-arrow-left-right"></i>Get a trade-in offer</a>
+          {% endif %}
+        </div>
+      </div>
+
+      {# ---------- Odometer ---------- #}
+      <div class="cc-card p-4 mt-4">
+        <div class="section-title"><i class="bi bi-speedometer2"></i>Odometer history</div>
+        <div class="chart-box sm"><canvas id="odo" aria-label="Odometer readings over time"></canvas></div>
+        {% if v.rollback %}
+        <div class="flag-card danger mt-3"><span class="ico"><i class="bi bi-exclamation-octagon"></i></span><div><b>The odometer went backwards by {{ v.rollback.drop|km }}</b><div class="small text-muted">{{ v.rollback.before.get_source_display }} on {{ v.rollback.before.read_on|date:"j M Y" }} recorded {{ v.rollback.before.km|km }}; {{ v.rollback.after.get_source_display|lower }} on {{ v.rollback.after.read_on|date:"j M Y" }} recorded {{ v.rollback.after.km|km }}.</div></div></div>
+        {% else %}
+        <p class="small text-muted mb-0 mt-2"><i class="bi bi-check-circle-fill text-success me-1"></i>{{ readings|length }} readings from inspections, services, PUC tests and insurance renewals, all consistent.</p>
+        {% endif %}
+      </div>
+
+      {# ---------- Challans ---------- #}
+      <div class="cc-card mt-4">
+        <div class="card-header d-flex flex-wrap justify-content-between gap-2 align-items-center">
+          <span><i class="bi bi-receipt-cutoff me-2 text-primary"></i>Challans</span>
+          <span class="small fw-normal text-muted">{{ wear_count }} hard-driving · {% if unpaid_total %}<b class="text-danger">{{ unpaid_total|inr }} unpaid</b>{% else %}all paid{% endif %}</span>
+        </div>
+        {% if challans %}
+        <div class="table-responsive"><table class="table">
+          <thead><tr><th>Date</th><th>Offence</th><th>Where</th><th>Owner</th><th class="text-end">Fine</th><th>Status</th></tr></thead>
+          <tbody>
+          {% for c in challans %}
+          <tr>
+            <td class="text-nowrap small">{{ c.issued_on|date:"j M Y" }}</td>
+            <td><span class="d-flex align-items-center gap-2"><i class="bi {{ c.icon }} {% if c.affects_wear %}text-danger{% else %}text-muted{% endif %}"></i>{{ c.get_offence_display }}{% if c.affects_wear %} <span class="wear-tag">Hard driving</span>{% endif %}</span></td>
+            <td class="small text-muted">{{ c.city }}</td>
+            <td class="small">#{{ c.owner_serial }}</td>
+            <td class="text-end">{{ c.amount|inr }}</td>
+            <td>{% if c.status == "PAID" %}<span class="badge-status badge-status-success"><i class="bi bi-check-circle"></i>Paid</span>{% elif c.status == "COURT" %}<span class="badge-status badge-status-danger"><i class="bi bi-bank2"></i>In court</span>{% else %}<span class="badge-status badge-status-warning"><i class="bi bi-hourglass-split"></i>Pending</span>{% endif %}</td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table></div>
+        {% else %}
+        <div class="text-center text-muted py-4"><i class="bi bi-emoji-smile fs-3 d-block mb-1"></i>Not a single challan on record</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      {# ---------- Ownership ---------- #}
+      <div class="cc-card p-4">
+        <div class="section-title"><i class="bi bi-people"></i>Ownership</div>
+        <ul class="timeline">
+          {% for o in ownerships %}
+          <li>
+            <span class="t-ico"><i class="bi {% if o.event == 'NEW' %}bi-stars{% elif o.event == 'INTERSTATE' %}bi-signpost-split{% else %}bi-arrow-left-right{% endif %}"></i></span>
+            <div class="fw-semibold">Owner {{ o.serial }}{% if forloop.last and not o.to_date %} <span class="badge-status badge-status-primary ms-1">Current</span>{% endif %}</div>
+            <small class="text-muted d-block">{{ o.get_event_display }} · {{ o.city }}, {{ o.state }}</small>
+            <small class="text-muted d-block">{{ o.from_date|date:"M Y" }} – {% if o.to_date %}{{ o.to_date|date:"M Y" }}{% else %}present{% endif %} · {{ o.years }} yr{{ o.years|pluralize }}</small>
+            {% if o.financed_by %}<small class="d-block mt-1"><i class="bi bi-bank me-1 text-muted"></i>{{ o.financed_by }} · {% if o.loan_closed_on %}<span class="text-success">closed {{ o.loan_closed_on|date:"M Y" }}</span>{% else %}<span class="text-warning-emphasis">loan open</span>{% endif %}</small>{% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+        <p class="small text-muted mb-0 mt-3"><i class="bi bi-incognito me-1"></i>Owner names are never shown, only counts, dates and places.</p>
+      </div>
+
+      {# ---------- Claims ---------- #}
+      <div class="cc-card p-4 mt-4">
+        <div class="section-title"><i class="bi bi-shield-exclamation"></i>Insurance claims</div>
+        {% for c in claims %}
+        <div class="d-flex gap-3 py-2 {% if not forloop.last %}border-bottom{% endif %}">
+          <i class="bi {{ c.icon }} fs-5 {% if c.kind == 'FLOOD' or c.kind == 'MAJOR' %}text-danger{% else %}text-muted{% endif %}"></i>
+          <div class="flex-grow-1"><b class="small d-block">{{ c.get_kind_display }}</b><small class="text-muted">{{ c.claimed_on|date:"j M Y" }} · {{ c.insurer }} · owner #{{ c.owner_serial }}</small></div>
+          <b class="small">{{ c.amount|inr }}</b>
+        </div>
+        {% empty %}
+        <div class="text-center text-muted py-3"><i class="bi bi-shield-check fs-3 d-block mb-1 text-success"></i>No claims ever filed</div>
+        {% endfor %}
+      </div>
+
+      {# ---------- Registry ---------- #}
+      <div class="cc-card p-4 mt-4">
+        <div class="section-title"><i class="bi bi-card-checklist"></i>Registry status</div>
+        <div class="d-grid gap-2 small">
+          <div class="d-flex justify-content-between"><span class="text-muted"><i class="bi bi-shield-check me-1"></i>Insurance</span>{% if record.insurance_active %}<span class="text-success">Valid till {{ record.insurance_valid_till|date:"j M Y" }}</span>{% else %}<span class="text-danger">Expired {{ record.insurance_valid_till|date:"j M Y" }}</span>{% endif %}</div>
+          <div class="d-flex justify-content-between"><span class="text-muted"><i class="bi bi-cloud-haze2 me-1"></i>PUC</span>{% if record.puc_active %}<span class="text-success">Valid till {{ record.puc_valid_till|date:"j M Y" }}</span>{% else %}<span class="text-danger">Expired {{ record.puc_valid_till|date:"j M Y" }}</span>{% endif %}</div>
+          <div class="d-flex justify-content-between"><span class="text-muted"><i class="bi bi-bank me-1"></i>Hypothecation</span>{% if record.hypothecated_to %}<span class="text-warning-emphasis">{{ record.hypothecated_to }}</span>{% else %}<span class="text-success">None</span>{% endif %}</div>
+          <div class="d-flex justify-content-between"><span class="text-muted"><i class="bi bi-clock-history me-1"></i>Fetched</span><span>{{ record.fetched_at|date:"j M Y, g:i A" }}</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endwith %}
+{{ odo_chart|json_script:"odo-data" }}
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="{% static 'js/charts.js' %}"></script>
+<script>
+  var o = JSON.parse(document.getElementById("odo-data").textContent);
+  CC.chart("odo", function (t) {
+    var colors = o.km.map(function (_, i) { return i === o.flag ? "#f04438" : CC.palette.blue; });
+    return { type: "line", data: { labels: o.labels, datasets: [{ data: o.km, borderColor: CC.palette.blue, backgroundColor: "rgba(46,144,250,.1)", fill: true, tension: .2,
+      pointRadius: o.km.map(function (_, i) { return i === o.flag ? 7 : 3; }), pointBackgroundColor: colors, pointBorderColor: colors,
+      segment: { borderColor: function (c) { return c.p1DataIndex === o.flag ? "#f04438" : undefined; }, borderDash: function (c) { return c.p1DataIndex === o.flag ? [5, 4] : undefined; } } }] },
+      options: { plugins: { legend: { display: false }, tooltip: { callbacks: { label: function (c) { return " " + c.raw.toLocaleString("en-IN") + " km · " + o.sources[c.dataIndex]; } } } },
+        scales: { x: { grid: { display: false }, border: { display: false }, ticks: { maxTicksLimit: 8 } }, y: { border: { display: false }, grid: { color: t.grid }, ticks: { callback: function (v) { return (v / 1000) + "k"; } } } } } };
+  });
+</script>
+{% endblock %}

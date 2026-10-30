@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -128,7 +129,14 @@ def vehicle_detail(request, pk):
     similar = (Vehicle.objects.exclude(pk=v.pk).exclude(status=Vehicle.Status.SOLD)
                .filter(vehicle_model__body_type=v.vehicle_model.body_type)
                .select_related("vehicle_model__make").order_by("?")[:3])
-    return render(request, "inventory/vehicle_detail.html", {"v": v, "specs": specs, "similar": similar})
+    passport = None
+    if v.reg_number:
+        from passport.valuation import passport_for
+
+        passport = passport_for(v.reg_number, v.mileage_km)
+    return render(request, "inventory/vehicle_detail.html", {"v": v, "specs": specs, "similar": similar,
+                                                             "record": passport[0] if passport else None,
+                                                             "passport": passport[1] if passport else None})
 
 
 @require_POST
@@ -268,17 +276,36 @@ def test_drive_action(request, pk):
 # ---------------------------------------------------------------- trade-ins
 
 def trade_in(request):
-    form = TradeInForm(request.POST or None)
-    estimate = None
+    from passport.models import RegistryRecord
+    from passport.valuation import passport_for
+
+    initial = {}
+    reg = request.GET.get("reg", "").upper()
+    rec = RegistryRecord.objects.filter(reg_number=reg).first() if reg else None
+    if rec:  # prefill from the registry so the customer only confirms condition
+        latest = rec.odometer.order_by("-read_on").first()
+        initial = {"reg_number": reg, "vehicle_model": rec.vehicle_model_id, "year": rec.manufacture_year,
+                   "km_driven": latest.km if latest else None}
+    form = TradeInForm(request.POST or None, initial=initial)
+    estimate = valuation = None
+    reg_not_found = False
     if request.method == "POST" and form.is_valid():
-        d = form.cleaned_data
-        estimate = services.estimate_trade_in(d["vehicle_model"], d["year"], d["km_driven"], d["condition_rating"])
+        d = dict(form.cleaned_data)
+        reg = d.pop("reg_number")
+        if reg:
+            record, valuation = passport_for(reg, d["km_driven"], d["condition_rating"])
+            if record:
+                d["vehicle_model"], d["year"] = record.vehicle_model, record.manufacture_year
+            else:
+                reg_not_found = True
+        estimate = valuation.final if valuation else services.estimate_trade_in(d["vehicle_model"], d["year"], d["km_driven"], d["condition_rating"])
         if request.user.is_authenticated and request.user.is_customer and request.POST.get("submit_offer"):
-            TradeInRequest.objects.create(customer=request.user, estimated_value=estimate, **d)
+            TradeInRequest.objects.create(customer=request.user, estimated_value=estimate, reg_number=reg if valuation else "", **d)
             messages.success(request, "Trade-in submitted! Our team will send you a firm offer within 24 hours.")
             return redirect("inventory:my_trade_ins")
     return render(request, "inventory/trade_in_form.html", {
-        "form": form, "estimate": estimate,
+        "form": form, "estimate": estimate, "valuation": valuation, "reg_not_found": reg_not_found,
+        "passport_reg": form.cleaned_data.get("reg_number") if form.is_bound and form.is_valid() else "",
         "condition_icons": {"EXCELLENT": "bi-emoji-heart-eyes", "GOOD": "bi-emoji-smile", "FAIR": "bi-emoji-neutral", "POOR": "bi-emoji-frown"},
         "condition_hints": {"EXCELLENT": "Like new, full service history", "GOOD": "Minor wear, no major repairs",
                             "FAIR": "Visible wear, some repairs due", "POOR": "Needs significant work"},
@@ -310,7 +337,12 @@ def trade_in_queue(request):
     base = TradeInRequest.objects.select_related("vehicle_model__make", "customer")
     counts = dict(base.values_list("status").annotate(n=Count("id")).values_list("status", "n"))
     tabs = [(code, label, counts.get(code, 0)) for code, label in TradeInRequest.Status.choices]
-    return render(request, "inventory/trade_in_queue.html", {"items": base.filter(status=tab), "tabs": tabs, "tab": tab})
+    from passport.valuation import passport_for
+
+    items = list(base.filter(status=tab))
+    for t in items:
+        t.passport = passport_for(t.reg_number, t.km_driven, t.condition_rating)[1] if t.reg_number else None
+    return render(request, "inventory/trade_in_queue.html", {"items": items, "tabs": tabs, "tab": tab})
 
 
 @role_required("SALES", "ADMIN")
@@ -371,3 +403,45 @@ def sales_list(request):
         sales = sales.filter(salesperson=request.user)
     page = Paginator(sales, 20).get_page(request.GET.get("page"))
     return render(request, "inventory/sales_list.html", {"page": page})
+
+
+# ---------------------------------------------------------------- upgrade planner
+
+TENURES = [36, 48, 60, 72, 84]
+
+
+def _num(value, default, lo=0, hi=10**8):
+    try:
+        return max(lo, min(hi, Decimal(str(value).replace(",", ""))))
+    except (InvalidOperation, ValueError, TypeError):
+        return Decimal(default)
+
+
+@role_required("CUSTOMER")
+def upgrade(request):
+    from passport.valuation import passport_for
+
+    cars = list(request.user.garage.select_related("vehicle_model__make"))
+    if not cars:
+        messages.info(request, "Add your current car to your garage to see what you can upgrade to.")
+        return redirect("service:garage_add")
+    g = request.GET
+    car = next((c for c in cars if str(c.pk) == g.get("car")), None) or min(cars, key=lambda c: c.year)
+
+    record, valuation = passport_for(car.reg_number, car.km_driven)
+    trade_value = valuation.final if valuation else services.estimate_trade_in(car.vehicle_model, car.year, car.km_driven, "GOOD")
+    outstanding = _num(g.get("loan"), car.loan_outstanding)
+    current_emi = _num(g.get("emi"), car.current_emi)
+    extra_down = _num(g.get("down"), 0, hi=5_000_000)
+    rate = _num(g.get("rate"), "9.5", lo=6, hi=18)
+    months = int(g.get("months")) if g.get("months", "").isdigit() and int(g.get("months")) in TENURES else 60
+
+    equity, bands = services.upgrade_options(trade_value, outstanding, current_emi, extra_down, rate, months,
+                                            car.vehicle_model, car.year)
+    total = max(trade_value, outstanding) or 1
+    return render(request, "inventory/upgrade.html", {
+        "cars": cars, "car": car, "valuation": valuation, "trade_value": trade_value,
+        "outstanding": outstanding, "current_emi": current_emi, "extra_down": extra_down, "rate": rate, "months": months,
+        "tenures": TENURES, "equity": equity, "bands": bands, "matches": sum(len(b[3]) for b in bands),
+        "equity_pct": float(min(trade_value, outstanding) / total * 100) if outstanding else 0,
+    })

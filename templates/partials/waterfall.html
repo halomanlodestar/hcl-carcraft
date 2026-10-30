@@ -1,0 +1,9 @@
+<div class="waterfall" role="table" aria-label="Value breakdown">
+  {% for s in steps %}
+  <div class="wf-row {% if s.kind == 'final' %}final{% endif %}" role="row">
+    <div class="wf-label" role="cell"><i class="bi {{ s.icon }}"></i><span><b>{{ s.label }}</b>{% if not compact %}<small>{{ s.detail }}</small>{% endif %}</span></div>
+    <div class="wf-track" aria-hidden="true"><span class="wf-bar {{ s.kind }}" style="left: {{ s.left|floatformat:2 }}%; width: {{ s.width|floatformat:2 }}%"></span></div>
+    <div class="wf-amt {{ s.kind }}" role="cell">{% if s.kind == "up" %}+{{ s.amount|inr }}{% elif s.kind == "down" %}−{{ s.amount|absval|inr }}{% else %}{{ s.amount|inr }}{% endif %}</div>
+  </div>
+  {% endfor %}
+</div>
